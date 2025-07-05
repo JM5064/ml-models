@@ -1,3 +1,9 @@
+# Datasets
+datasets/Caltech-256/Caltech-256
+
+# Training runs
+**/runs/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
