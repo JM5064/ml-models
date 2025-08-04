@@ -5,6 +5,7 @@ PyTorch implementation of [A ConvNet for the 2020s](https://arxiv.org/pdf/2201.0
 <img src="https://miro.medium.com/v2/resize:fit:895/1*iC8ri_1VZ1d0cNUgy7LqrA.png" width="600">
 
 I implemented a pico version of ConvNeXt with 13.3M params. 
+
 Implementation details:
 - (3, 3, 9, 3) blocks per stage
 - (64, 128, 256, 512) block dimensions
