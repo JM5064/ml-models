@@ -2,7 +2,7 @@
 
 PyTorch implementation of [A ConvNet for the 2020s](https://arxiv.org/pdf/2201.03545)
 
-<img src="https://miro.medium.com/v2/resize:fit:895/1*iC8ri_1VZ1d0cNUgy7LqrA.png" width="500">
+<img src="https://miro.medium.com/v2/resize:fit:895/1*iC8ri_1VZ1d0cNUgy7LqrA.png" width="600">
 
 I implemented a pico version of ConvNeXt with 13.3M params. 
 Implementation details:
@@ -19,8 +19,6 @@ The model was trained from scratch on the [Caltech-256](https://doi.org/10.22002
 
 Training was done for 100 epochs (though only 95 epochs are logged since 5 of them weren't saved oops).
 
-<img src="results/convnext_results.png" width="500">
-
 ---
 
 ## Results
@@ -28,3 +26,5 @@ Training was done for 100 epochs (though only 95 epochs are logged since 5 of th
 | -------- | -------------- | --------- | ------ |
 | Val      | 57.9           | 59.0      | 57.9   |
 | Test     | 59.3           | 60.5      | 59.3   |
+
+<img src="results/convnext_results.png" width="600">
