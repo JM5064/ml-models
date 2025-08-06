@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from torchsummary import summary
+
 
 class ConvNeXtBlock(nn.Module):
 
@@ -99,3 +101,8 @@ class ConvNeXt(nn.Module):
 #        x = self.fc2(x)
 
         return x
+
+
+if __name__ == "__main__":
+    model = ConvNeXt(layer_distribution=[3, 3, 9, 3], num_classes=10)
+    profile = summary(model, input_size=(3, 224, 224))
