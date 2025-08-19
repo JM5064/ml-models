@@ -1,6 +1,6 @@
 """
 Convert mpii dataset mat file into custom json format:
-[
+{
   "00001.jpg": [
     {
       "bbox": [x, y, w, h],
@@ -12,7 +12,7 @@ Convert mpii dataset mat file into custom json format:
     }
   ],
 ...
-]
+}
 """
 
 import os
@@ -102,7 +102,7 @@ def create_bounding_box(points, image_width, image_height):
     return:
         tlx, tly, brx, bry
     """
-
+    
     min_x = float('inf')
     max_x = -float('inf')
     min_y = float('inf')
@@ -117,7 +117,8 @@ def create_bounding_box(points, image_width, image_height):
         min_y = min(min_y, y)
         max_y = max(max_y, y)
 
-    padding = 0.4
+    # Create initial padding bbox for the person based on their pose points
+    padding = 0.35
 
     width = max_x - min_x
     height = max_y - min_y
@@ -131,6 +132,20 @@ def create_bounding_box(points, image_width, image_height):
     max_x = min(max_x, image_width)
     min_y = max(min_y, 0)
     max_y = min(max_y, image_height)
+    
+    padded_width = max_x - min_x
+    padded_height = max_y - min_y
+
+    # For the current shorter side, extend them so that it's halfway between where it is now and the longer side
+    max_length = max(padded_width, padded_height)
+
+    x_extension = (max_length - padded_width) / 4
+    y_extension = (max_length - padded_height) / 4
+
+    min_x -= x_extension
+    max_x += x_extension
+    min_y -= y_extension
+    min_y += y_extension
 
     return round(min_x), round(min_y), round(max_x), round(max_y)
 

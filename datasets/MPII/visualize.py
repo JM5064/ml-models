@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 import os
 import random
+from PIL import Image
 
 
 images_dir = 'datasets/MPII/mpii/images'
@@ -51,7 +52,8 @@ def create_bounding_box(points, image_width, image_height):
         min_y = min(min_y, y)
         max_y = max(max_y, y)
 
-    padding = 0.4
+    # Create initial padding bbox for the person based on their pose points
+    padding = 0.35
 
     width = max_x - min_x
     height = max_y - min_y
@@ -65,13 +67,27 @@ def create_bounding_box(points, image_width, image_height):
     max_x = min(max_x, image_width)
     min_y = max(min_y, 0)
     max_y = min(max_y, image_height)
+    
+    padded_width = max_x - min_x
+    padded_height = max_y - min_y
+
+    # For the current shorter side, extend them so that it's halfway between where it is now and the longer side
+    max_length = max(padded_width, padded_height)
+
+    x_extension = (max_length - padded_width) / 4
+    y_extension = (max_length - padded_height) / 4
+
+    min_x -= x_extension
+    max_x += x_extension
+    min_y -= y_extension
+    min_y += y_extension
 
     return round(min_x), round(min_y), round(max_x), round(max_y)
 
 
 def visualize_images():
     start_image = random.randint(0, 24884)
-    start_image = 1367
+    start_image = 0
     end_image = min(start_image + 100, 24984)
     print(f'Viewing images {start_image} to {end_image}')
     for i in range(start_image, end_image):
