@@ -117,6 +117,10 @@ def visualize_images():
             print("sus, no annorect", annolist[i]['annorect'], annolist[i])
             continue
 
+        # Find video id
+        if 'vididx' in annolist.dtype.fields and len(annolist[i]['vididx'][0]) == 1:
+            print("Video ID:", annolist[i]['vididx'][0][0])
+
         # Put all people ids that are sufficiently separated in a set
         individuals_ids = set()
         for sp in single_person[i][0]:

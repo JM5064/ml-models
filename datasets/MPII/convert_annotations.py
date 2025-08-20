@@ -67,6 +67,9 @@ def create_annotations(annolist, img_train, single_person, images_dir, annotatio
         # Get the annorects for the current image
         annorects = annolist[i]['annorect'][0]
 
+        # Get the videoid
+        vididx = int(annolist[i]['vididx'][0][0])
+
         # Store the annotations for every sufficiently separated person in the image
         person_annotations = []
 
@@ -81,7 +84,7 @@ def create_annotations(annolist, img_train, single_person, images_dir, annotatio
                 continue
 
             # Create person annotation
-            person_annotation = create_person_annotation(annorects[ridx], width, height)
+            person_annotation = create_person_annotation(annorects[ridx], vididx, width, height)
             if person_annotation is None:
                 continue
 
@@ -150,7 +153,7 @@ def create_bounding_box(points, image_width, image_height):
     return round(min_x), round(min_y), round(max_x), round(max_y)
 
 
-def create_person_annotation(annorect, image_width, image_height):
+def create_person_annotation(annorect, vididx, image_width, image_height):
     """
     Returns an object {
         "bbox": [x1, y1, x2, y2],
@@ -207,6 +210,7 @@ def create_person_annotation(annorect, image_width, image_height):
 
     
     return {
+        "vididx": vididx,
         "bbox": [x1, y1, x2, y2],
         "keypoints": keypoints
     }
