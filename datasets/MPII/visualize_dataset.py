@@ -3,6 +3,7 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 from mpii_dataset import MPIIDataset
+from torchvision.transforms import v2
 from PIL import Image
 
 
@@ -16,6 +17,9 @@ def visualize_dataset(dataset, num_samples=100):
 
         # Convert PIL image to numpy
         image = np.array(image)
+        image = np.transpose(image, (1, 2, 0))
+
+        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
         # Draw keypoints
         for (x, y, v) in keypoints:
@@ -27,8 +31,6 @@ def visualize_dataset(dataset, num_samples=100):
                 color = (255, 0, 0)
 
             cv2.circle(image, (int(x), int(y)), 3, color, -1)
-
-        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
         cv2.imshow('Dataset', image)
         if cv2.waitKey(0) & 0xFF == ord('q'):
@@ -43,6 +45,7 @@ def visualize_heatmaps(dataset, num_samples=100):
     for i in range(min(num_samples, len(dataset))):
         image, keypoints, heatmaps = dataset[i]
         image = np.array(image)
+        image = np.transpose(image, (1, 2, 0))
         image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
         # Combine heatmaps
@@ -58,6 +61,14 @@ def visualize_heatmaps(dataset, num_samples=100):
     cv2.destroyAllWindows()
 
 
-mpii_dataset = MPIIDataset('datasets/MPII/mpii/images', 'datasets/MPII/mpii/annotations.json')
+train_transform = v2.Compose([
+        v2.ToTensor(),
+        # v2.RandomAffine(degrees=10, translate=(0.1, 0.1), scale=(0.9, 1)),
+        v2.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.05),
+        # v2.Normalize(mean=[0.472, 0.450, 0.413],
+        #                     std=[0.277, 0.272, 0.273]),
+    ])
+
+mpii_dataset = MPIIDataset('datasets/MPII/mpii/images', 'datasets/MPII/mpii/annotations.json', transform=train_transform)
 # visualize_dataset(mpii_dataset)
 visualize_heatmaps(mpii_dataset)

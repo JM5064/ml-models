@@ -9,6 +9,7 @@ import random
 import cv2
 import scipy.io
 import jsonyx as json
+import time
 
 import torch
 from PIL import Image
@@ -18,7 +19,7 @@ import torchvision.transforms as transforms
 
 class MPIIDataset(Dataset):
 
-    def __init__(self, images_dir, annotations_json, output_size=256, heatmap_size=64):
+    def __init__(self, images_dir, annotations_json, transform=None, output_size=256, heatmap_size=64):
         self.images_dir = images_dir
 
         self.dataset_json = json.load(open(annotations_json, "r"))
@@ -27,6 +28,7 @@ class MPIIDataset(Dataset):
             for person in self.dataset_json[image_name]:
                 self.data.append((image_name, person))
 
+        self.transform = transform
         self.output_size = output_size
         self.heatmap_size = heatmap_size
 
@@ -36,16 +38,36 @@ class MPIIDataset(Dataset):
     
 
     def __getitem__(self, index):
+        """Get a sample from the dataset by index
+        args:
+            index: number
+
+        returns:
+            np_image: ndarray of the input image
+            letterbox_keypoints: [[x1, y1, v1], ...] keypoints
+            heatmaps: ndarray of the heatmaps
+        """
+
         image_name, person = self.data[index]
         image_path = os.path.join(self.images_dir, image_name)
 
         image = Image.open(image_path)
 
+        # Create letterbox crop for image
         letterbox_image, letterbox_keypoints = self.create_letterbox_image(image, person)
+        np_image = np.array(letterbox_image)
+        
+        # Convert keypoints to tensor
+        tensor_keypoints = torch.tensor(letterbox_keypoints, dtype=torch.float32)
 
+        # Create heatmaps
         heatmaps = self.create_heatmap_and_offset_maps(letterbox_keypoints)
 
-        return letterbox_image, letterbox_keypoints, heatmaps
+        # Apply transformations
+        if self.transform:
+            np_image = self.transform(np_image)
+
+        return np_image, tensor_keypoints, heatmaps
 
 
     def crop_person(self, image, person):
@@ -64,7 +86,9 @@ class MPIIDataset(Dataset):
         # Subtract top left from all keypoints
         cropped_keypoints = []
         for keypoint in person["keypoints"]:
-            if keypoint[0] == -1: continue
+            if keypoint[0] == -1: 
+                cropped_keypoints.append([-1, -1, -1])
+                continue
 
             cropped_keypoints.append([keypoint[0] - x1, keypoint[1] - y1, keypoint[2]])
 
@@ -104,7 +128,9 @@ class MPIIDataset(Dataset):
         # Scale keypoints
         scaled_keypoints = []
         for keypoint in cropped_keypoints:
-            if keypoint[0] == -1: continue
+            if keypoint[0] == -1: 
+                scaled_keypoints.append([-1, -1, -1])
+                continue
             
             scaled_keypoints.append([keypoint[0] * scale, keypoint[1] * scale, keypoint[2]])
 
@@ -118,7 +144,9 @@ class MPIIDataset(Dataset):
         # Add lettercrop padding to keypoints
         lettercrop_keypoints = []
         for keypoint in scaled_keypoints:
-            if keypoint[0] == -1: continue
+            if keypoint[0] == -1: 
+                lettercrop_keypoints.append([-1, -1, -1])
+                continue
 
             lettercrop_keypoints.append([keypoint[0] + x_pad_left, keypoint[1] + y_pad_top, keypoint[2]])
 
@@ -126,13 +154,14 @@ class MPIIDataset(Dataset):
 
     
     def create_heatmap_channel(self, x, y, sigma=5):
-        channel = np.zeros((self.output_size, self.output_size))
+        rows = np.arange(self.output_size, dtype=np.float32)[:, None] # Column vector (height, 1)
+        cols = np.arange(self.output_size, dtype=np.float32)[None, :] # Row vector (1, width)
 
-        for r in range(self.output_size):
-            for c in range(self.output_size):
-                gaussian_value = math.exp(-((c - x) ** 2 + (r - y) ** 2) / (2 * sigma ** 2))
+        # Get squared distances from each point i, j to x, y
+        dist_sq = (cols - x) ** 2 + (rows - y) ** 2 
 
-                channel[r][c] = gaussian_value
+        # Compute Gaussians
+        channel = np.exp(-dist_sq / (2 * sigma ** 2))
 
         channel = cv2.resize(channel, (self.heatmap_size, self.heatmap_size), interpolation=cv2.INTER_LINEAR)
     
@@ -144,7 +173,7 @@ class MPIIDataset(Dataset):
 
         for keypoint in letterbox_keypoints:
             if keypoint[0] == -1:
-                heatmaps.append(np.zeros((self.heatmap_size, self.heatmap_size)))
+                heatmaps.append(np.zeros((self.heatmap_size, self.heatmap_size), dtype=np.float32))
             else:
                 heatmap_channel = self.create_heatmap_channel(keypoint[0], keypoint[1])
                 heatmaps.append(heatmap_channel)

@@ -60,7 +60,7 @@ def create_split_annotations(data, split_json_path):
     annotations = {}
 
     for image_name, person in data:
-        annotations[image_name] = person
+        annotations[image_name] = [person]
 
     with open(split_json_path, 'w') as file:
         json.dump(annotations, file, indent=2, indent_leaves=False)
