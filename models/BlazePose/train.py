@@ -45,7 +45,7 @@ def validate(model, val_loader, loss_func):
 
             # Get predictions for regression and heatmap paths
             regression_outputs, heatmap_outputs = model(inputs)
-            loss = loss_func(regression_outputs, keypoints)
+            loss = loss_func(regression_outputs, keypoints, heatmap_outputs, heatmaps)
             running_loss += loss.item()
 
             all_preds.extend(regression_outputs.cpu().numpy().squeeze())
@@ -113,7 +113,7 @@ def train(
             # Get predictions for regression and heatmap paths
             regression_outputs, heatmap_outputs = model(inputs)
 
-            loss = loss_func(regression_outputs, keypoints)
+            loss = loss_func(regression_outputs, keypoints, heatmap_outputs, heatmaps)
             loss.backward()
             optimizer.step()
 

@@ -110,7 +110,7 @@ class BlazeBlock(nn.Module):
         x = self.pw1(x)
         x = self.pw2(x)
 
-        x += x_resid
+        x = x + x_resid
 
         return x
     
@@ -144,7 +144,7 @@ class PoseBlock(nn.Module):
         x = F.relu(x)
         x = self.pw2(x)
 
-        x += x_resid
+        x = x + x_resid
 
         return x
 
@@ -169,7 +169,7 @@ class HeatmapBlock(nn.Module):
         if prev_x is not None:
             prev_x = self.upsample(prev_x)
 
-            x += prev_x
+            x = x + prev_x
 
         return x
 

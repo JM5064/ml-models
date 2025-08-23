@@ -41,6 +41,7 @@ class RegressionLoss(nn.Module):
         # Calculate squared errors between visibilities
         squared_errors = (preds_visibility - labels_visibility) ** 2
         
+        # TODO: maybe get rid of this?
         # Make sure visibility = -1 doesn't affect the loss for visibility loss too
         squared_errors_masked = squared_errors * mask
 
@@ -56,9 +57,8 @@ class RegressionLoss(nn.Module):
         return total_loss
 
 
-
 if __name__ == "__main__":
-    # Fake batch of 2 images, 5 keypoints each
+    # Batch of 2 images, 5 keypoints each
     outputs = torch.tensor([
         [[10, 20, 0], [30, 40, 1], [50, 60, 0], [70, 80, 0], [90, 100, 0]],
         [[11, 21, 0], [31, 41, 1], [51, 61, 0], [71, 81, 0.9], [91, 101, 0.5]]
