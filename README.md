@@ -4,3 +4,5 @@ A repository for machine learning papers I have tried to implement. Models can b
 
 [A ConvNet for the 2020s](models/ConvNeXt/)
 
+[BlazePose: On-device Real-time Body Pose tracking](models/BlazePose/)
+
