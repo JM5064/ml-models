@@ -23,6 +23,10 @@ def visualize_dataset(dataset, num_samples=100):
 
         # Draw keypoints
         for (x, y, v) in keypoints:
+            # Unnormalize coords
+            x *= 256
+            y *= 256
+
             if v == 1:
                 # Occluded
                 color = (0, 255, 0)
@@ -70,5 +74,5 @@ train_transform = v2.Compose([
     ])
 
 mpii_dataset = MPIIDataset('datasets/MPII/mpii/images', 'datasets/MPII/mpii/annotations.json', transform=train_transform)
-# visualize_dataset(mpii_dataset)
-visualize_heatmaps(mpii_dataset)
+visualize_dataset(mpii_dataset)
+# visualize_heatmaps(mpii_dataset)

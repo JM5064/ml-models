@@ -56,9 +56,12 @@ class MPIIDataset(Dataset):
         # Create letterbox crop for image
         letterbox_image, letterbox_keypoints = self.create_letterbox_image(image, person)
         np_image = np.array(letterbox_image)
+
+        # Normalize keypoints
+        normalized_keypoints = self.normalize_keypoints(letterbox_keypoints)
         
         # Convert keypoints to tensor
-        tensor_keypoints = torch.tensor(letterbox_keypoints, dtype=torch.float32)
+        tensor_keypoints = torch.tensor(normalized_keypoints, dtype=torch.float32)
 
         # Create heatmaps
         heatmaps = self.create_heatmap_and_offset_maps(letterbox_keypoints)
@@ -99,7 +102,7 @@ class MPIIDataset(Dataset):
 
     def create_letterbox_image(self, image, person):
         """Creates letterbox cropped image
-                args:
+        args:
             image: PIL image
             person: { bbox: [x1, y1, x2, y2], keypoints: [[x1, y1, v1], ...]}
 
@@ -152,6 +155,26 @@ class MPIIDataset(Dataset):
 
         return lettercrop_image, lettercrop_keypoints
 
+
+    def normalize_keypoints(self, keypoints):
+        """Normalizes keypoints between 0-1
+        args:
+            keypoints: [[x1, y1, v1], ...] keypoints
+
+        returns:
+            normalized_keypoints: [[x1, y1, v1], ...] normalized keypoints
+        """
+        
+        normalized_keypoints = []
+        for keypoint in keypoints:
+            if keypoint[0] == -1: 
+                normalized_keypoints.append([-1, -1, -1])
+                continue
+
+            normalized_keypoints.append([keypoint[0] / self.output_size, keypoint[1] / self.output_size, keypoint[2]])
+
+        return normalized_keypoints
+
     
     def create_heatmap_channel(self, x, y, sigma=5):
         rows = np.arange(self.output_size, dtype=np.float32)[:, None] # Column vector (height, 1)
@@ -179,6 +202,5 @@ class MPIIDataset(Dataset):
                 heatmaps.append(heatmap_channel)
 
         return np.array(heatmaps)
-
 
 

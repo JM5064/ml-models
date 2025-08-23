@@ -19,6 +19,8 @@ from .blazepose import BlazePose
 from .train import train, to_device
 from datasets.MPII.mpii_dataset import MPIIDataset
 
+from.regression_loss import RegressionLoss
+
 
 if __name__ == "__main__":
     random.seed(5064)
@@ -77,4 +79,4 @@ if __name__ == "__main__":
     total_epochs = 6
     scheduler = convnext_scheduler(optimizer, warmup_epochs, total_epochs)
 
-    train(model, total_epochs, train_loader=train_loader, val_loader=val_loader, test_loader=test_loader, loss_func=nn.MSELoss(), optimizer=optimizer, scheduler=scheduler)
+    train(model, total_epochs, train_loader=train_loader, val_loader=val_loader, test_loader=test_loader, loss_func=RegressionLoss(), optimizer=optimizer, scheduler=scheduler)
