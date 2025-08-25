@@ -176,7 +176,7 @@ class MPIIDataset(Dataset):
         return normalized_keypoints
 
     
-    def create_heatmap_channel(self, x, y, sigma=5):
+    def create_heatmap_channel(self, x, y, sigma=3):
         rows = np.arange(self.output_size, dtype=np.float32)[:, None] # Column vector (height, 1)
         cols = np.arange(self.output_size, dtype=np.float32)[None, :] # Row vector (1, width)
 
@@ -189,10 +189,41 @@ class MPIIDataset(Dataset):
         channel = cv2.resize(channel, (self.heatmap_size, self.heatmap_size), interpolation=cv2.INTER_LINEAR)
     
         return channel
+    
+
+    def create_offset_channel(self, x, y, radius=2):
+        """Creates x and y offset channels for a given radius around the keypoint
+        args:
+            x, y: the x, y positions of the keypoint in image space (not normalized)
+            radius: a square radius around the point where offsets are calculated
+
+        returns:
+            x_offset_map: offset map in the x direction
+            y_offset_map: offset map in the y direction
+        """
+
+        x_offset_map = np.zeros((self.heatmap_size, self.heatmap_size), dtype=np.float32)
+        y_offset_map = np.zeros((self.heatmap_size, self.heatmap_size), dtype=np.float32)
+
+        # Return map of zeroes if keypoint not present
+        if x == -1:
+            return (x_offset_map, y_offset_map)
+        
+        x_heatmap_true_center = (x / self.output_size) * self.heatmap_size
+        y_heatmap_true_center = (y / self.output_size) * self.heatmap_size
+
+        for i in range(max(0, int(y_heatmap_true_center - radius)), min(self.heatmap_size, int(y_heatmap_true_center + radius))):
+            for j in range(max(0, int(x_heatmap_true_center - radius)), min(self.heatmap_size, int(x_heatmap_true_center + radius))):
+                x_offset_map[i, j] = x_heatmap_true_center - j
+                y_offset_map[i, j] = y_heatmap_true_center - i
+
+        return (x_offset_map, y_offset_map)
 
 
     def create_heatmap_and_offset_maps(self, letterbox_keypoints):        
         heatmaps = []
+        x_offset_maps = []
+        y_offset_maps = []
 
         for keypoint in letterbox_keypoints:
             if keypoint[0] == -1:
@@ -200,6 +231,15 @@ class MPIIDataset(Dataset):
             else:
                 heatmap_channel = self.create_heatmap_channel(keypoint[0], keypoint[1])
                 heatmaps.append(heatmap_channel)
+
+            x_offset_channel, y_offset_channel = self.create_offset_channel(keypoint[0], keypoint[1])
+
+            x_offset_maps.append(x_offset_channel)
+            y_offset_maps.append(y_offset_channel)
+
+        # Combine heatmaps and offset maps
+        heatmaps.extend(x_offset_maps)
+        heatmaps.extend(y_offset_maps)
 
         return np.array(heatmaps)
 

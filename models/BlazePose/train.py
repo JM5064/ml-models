@@ -67,12 +67,16 @@ def validate(model, val_loader, loss_func):
     labels_kp = labels_concat.view(-1, 4, 2)
 
     distances = torch.norm(preds_kp - labels_kp, dim=2)
-    correct = (distances < 0.05).float() # if distance is < 0.05, count as correct
-    pck = correct.mean().item()
+    correct005 = (distances < 0.05).float() # if distance is < 0.05, count as correct
+    correct02 = (distances < 0.2).float() # if distance is < 0.2, count as correct
+
+    pck005 = correct005.mean().item()
+    pck02 = correct02.mean().item()
 
     metrics = {
         "mae": mae,
-        "pck": pck,
+        "pck@0.05": pck005,
+        "pck@0.2": pck02,
         "average_val_loss": average_val_loss,
     }
 
@@ -127,7 +131,7 @@ def train(
 
         print(f'Epoch {i+1} Results:')
         print(f'Train Loss: {average_train_loss}\tValidation Loss: {metrics["average_val_loss"]}')
-        print(f'MAE: {metrics["mae"]}\tPCK: {metrics["pck"]}')
+        print(f'MAE: {metrics["mae"]}\tPCK@0.05: {metrics["pck@0.05"]}\tPCK@0.2: {metrics["pck@0.2"]}')
 
         log_results(logfile, metrics)
 
@@ -154,7 +158,7 @@ def train(
     print("Testing Model")
     metrics = validate(model, test_loader, loss_func)
     print("Testing Results")
-    print(f'MAE: {metrics["mae"]}\tPCK: {metrics["pck"]}')
+    print(f'MAE: {metrics["mae"]}\tPCK@0.05: {metrics["pck@0.05"]}\tPCK@0.2: {metrics["pck@0.2"]}')
     print(f'Test Loss: {metrics["average_val_loss"]}')
 
     test_logfile = open(runs_dir + "/" + time + "/test_metrics.txt", "a")
