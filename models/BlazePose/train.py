@@ -38,14 +38,15 @@ def validate(model, val_loader, loss_func):
     running_loss = 0.0
 
     with torch.no_grad():
-        for inputs, keypoints, heatmaps in tqdm(val_loader):
+        for inputs, keypoints, heatmaps, offset_masks in tqdm(val_loader):
             inputs = to_device(inputs)
             keypoints = to_device(keypoints)
             heatmaps = to_device(heatmaps)
+            offset_masks = to_device(offset_masks)
 
             # Get predictions for regression and heatmap paths
             regression_outputs, heatmap_outputs = model(inputs)
-            loss = loss_func(regression_outputs, keypoints, heatmap_outputs, heatmaps)
+            loss = loss_func(regression_outputs, keypoints, heatmap_outputs, heatmaps, offset_masks)
             running_loss += loss.item()
 
             all_preds.extend(regression_outputs.cpu().numpy().squeeze())
@@ -107,17 +108,18 @@ def train(
 
         model.train()
         running_loss = 0.0
-        for inputs, keypoints, heatmaps in tqdm(train_loader):
+        for inputs, keypoints, heatmaps, offset_masks in tqdm(train_loader):
             inputs = to_device(inputs)
             keypoints = to_device(keypoints)
             heatmaps = to_device(heatmaps)
+            offset_masks = to_device(offset_masks)
 
             optimizer.zero_grad()
 
             # Get predictions for regression and heatmap paths
             regression_outputs, heatmap_outputs = model(inputs)
 
-            loss = loss_func(regression_outputs, keypoints, heatmap_outputs, heatmaps)
+            loss = loss_func(regression_outputs, keypoints, heatmap_outputs, heatmaps, offset_masks)
             loss.backward()
             optimizer.step()
 

@@ -18,9 +18,9 @@ class CombinedLoss(nn.Module):
         self.alpha = alpha
 
 
-    def forward(self, regression_preds, regression_labels, heatmap_preds, heatmap_labels):
+    def forward(self, regression_preds, regression_labels, heatmap_preds, heatmap_labels, offset_masks):
         regression_loss = self.regression_loss_func(regression_preds, regression_labels)
-        heatmap_loss = self.heatmap_loss_func(heatmap_preds, heatmap_labels, regression_labels)
+        heatmap_loss = self.heatmap_loss_func(heatmap_preds, heatmap_labels, offset_masks, regression_labels)
 
         combined_loss = regression_loss + self.alpha * heatmap_loss
 
