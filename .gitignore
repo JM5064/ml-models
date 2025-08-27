@@ -5,6 +5,8 @@ datasets/MPII/mpii
 # Training runs
 **/runs/
 
+.DS_Store
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
