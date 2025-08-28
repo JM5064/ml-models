@@ -1,1 +1,13 @@
 accuracy: 0.5933562428407789	precision: 0.6046386404058404	recall: 0.5933562428407789	f1: 0.5866886231559111	average_val_loss: 3.0651698630789053
+
+Test:
+Num correct at each k: [2590, 3326]
+Total images: 4365
+top1 accuracy: 0.593356243
+top5 accuracy: 0.761970218
+
+Val:
+Num correct at each k: [2732, 3510]
+Total images: 4711
+top1 accuracy: 0.579919338
+top5 accuracy: 0.745064742

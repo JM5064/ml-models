@@ -23,9 +23,9 @@ Training was done for 100 epochs (though only 95 epochs are logged since 5 of th
 ---
 
 ## Results
-|          | Top-1 Accuracy | Precision | Recall |
-| -------- | -------------- | --------- | ------ |
-| Val      | 57.9           | 59.0      | 57.9   |
-| Test     | 59.3           | 60.5      | 59.3   |
+|          | Top-1 Accuracy | Top-5 Accuracy | Precision | Recall |
+| -------- | -------------- | -------------- | --------- | ------ |
+| Val      | 58.0           | 74.5           | 59.0      | 57.9   |
+| Test     | 59.3           | 76.2           | 60.5      | 59.3   |
 
 <img src="results/convnext_results.png" width="600">
