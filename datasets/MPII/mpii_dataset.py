@@ -17,7 +17,7 @@ from torch.utils.data import Dataset
 
 class MPIIDataset(Dataset):
 
-    def __init__(self, images_dir, annotations_json, transform=None, output_size=256, heatmap_size=64):
+    def __init__(self, images_dir, annotations_json, transform=None, image_size=256, heatmap_size=64):
         self.images_dir = images_dir
 
         self.dataset_json = json.load(open(annotations_json, "r"))
@@ -27,7 +27,7 @@ class MPIIDataset(Dataset):
                 self.data.append((image_name, person))
 
         self.transform = transform
-        self.output_size = output_size
+        self.image_size = image_size
         self.heatmap_size = heatmap_size
 
 
@@ -53,20 +53,22 @@ class MPIIDataset(Dataset):
 
         # Create letterbox crop for image
         letterbox_image, letterbox_keypoints = self.create_letterbox_image(image, person)
-        np_image = np.array(letterbox_image)
+
+        # Apply transformations
+        if self.transform:
+            transformed_image, transformed_keypoints = self.transform(letterbox_image, letterbox_keypoints)
+
+        # Convert image to numpy
+        np_image = np.array(transformed_image)
 
         # Normalize keypoints
-        normalized_keypoints = self.normalize_keypoints(letterbox_keypoints)
+        normalized_keypoints = self.normalize_keypoints(transformed_keypoints)
         
         # Convert keypoints to tensor
         tensor_keypoints = torch.tensor(normalized_keypoints, dtype=torch.float32)
 
         # Create heatmaps / offset maps
         heatmaps, offset_masks = self.create_heatmap_and_offset_maps(letterbox_keypoints)
-
-        # Apply transformations
-        if self.transform:
-            np_image = self.transform(np_image)
 
         return np_image, tensor_keypoints, heatmaps, offset_masks
 
@@ -118,7 +120,7 @@ class MPIIDataset(Dataset):
 
         # Calculate scale factor
         longest_side = max(width, height)
-        scale = self.output_size / longest_side
+        scale = self.image_size / longest_side
 
         new_width = round(width * scale)
         new_height = round(height * scale)
@@ -135,11 +137,11 @@ class MPIIDataset(Dataset):
             
             scaled_keypoints.append([keypoint[0] * scale, keypoint[1] * scale, keypoint[2]])
 
-        x_pad_left = (self.output_size - new_width) // 2
-        y_pad_top = (self.output_size - new_height) // 2
+        x_pad_left = (self.image_size - new_width) // 2
+        y_pad_top = (self.image_size - new_height) // 2
 
         # Add lettercrop padding to scaled image
-        lettercrop_image = Image.new(scaled_image.mode, (self.output_size, self.output_size), (0, 0, 0))
+        lettercrop_image = Image.new(scaled_image.mode, (self.image_size, self.image_size), (0, 0, 0))
         lettercrop_image.paste(scaled_image, (x_pad_left, y_pad_top))
 
         # Add lettercrop padding to keypoints
@@ -169,14 +171,14 @@ class MPIIDataset(Dataset):
                 normalized_keypoints.append([-1, -1, -1])
                 continue
 
-            normalized_keypoints.append([keypoint[0] / self.output_size, keypoint[1] / self.output_size, keypoint[2]])
+            normalized_keypoints.append([keypoint[0] / self.image_size, keypoint[1] / self.image_size, keypoint[2]])
 
         return normalized_keypoints
 
     
     def create_heatmap_channel(self, x, y, sigma=3):
-        rows = np.arange(self.output_size, dtype=np.float32)[:, None] # Column vector (height, 1)
-        cols = np.arange(self.output_size, dtype=np.float32)[None, :] # Row vector (1, width)
+        rows = np.arange(self.image_size, dtype=np.float32)[:, None] # Column vector (height, 1)
+        cols = np.arange(self.image_size, dtype=np.float32)[None, :] # Row vector (1, width)
 
         # Get squared distances from each point i, j to x, y
         dist_sq = (cols - x) ** 2 + (rows - y) ** 2 
@@ -205,8 +207,8 @@ class MPIIDataset(Dataset):
         if x == -1:
             return None, None, None
         
-        x_heatmap_true_center = (x / self.output_size) * self.heatmap_size
-        y_heatmap_true_center = (y / self.output_size) * self.heatmap_size
+        x_heatmap_true_center = (x / self.image_size) * self.heatmap_size
+        y_heatmap_true_center = (y / self.image_size) * self.heatmap_size
 
         rows = np.arange(self.heatmap_size, dtype=np.float32)[:, None] # Column vector (height, 1)
         cols = np.arange(self.heatmap_size, dtype=np.float32)[None, :] # Row vector (1, width)

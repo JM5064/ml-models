@@ -18,6 +18,7 @@ from torchvision.transforms import v2
 from .blazepose import BlazePose
 from .train import train, to_device
 from datasets.MPII.mpii_dataset import MPIIDataset
+from datasets.MPII.random_affine import RandomAffine
 
 from .combined_loss import CombinedLoss
 
@@ -26,8 +27,8 @@ if __name__ == "__main__":
     random.seed(5064)
 
     train_transform = v2.Compose([
+        RandomAffine(degrees=15, translate=(0.15, 0.15), scale=(0.8, 1.2), shear=0.1),
         v2.ToTensor(),
-        # TODO: add affine transforms
         v2.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.05),
         v2.Normalize(mean=[0.472, 0.450, 0.413],
                             std=[0.277, 0.272, 0.273]),

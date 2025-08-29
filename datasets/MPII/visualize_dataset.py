@@ -5,6 +5,7 @@ from torch.utils.data import Dataset
 from mpii_dataset import MPIIDataset
 from torchvision.transforms import v2
 from PIL import Image
+from random_affine import RandomAffine
 
 
 def visualize_dataset(dataset, num_samples=100):
@@ -13,7 +14,7 @@ def visualize_dataset(dataset, num_samples=100):
     where keypoints are in format [[x, y, v], ...].
     """
     for i in range(min(num_samples, len(dataset))):
-        image, keypoints, _ = dataset[i]
+        image, keypoints, _, _ = dataset[i]
 
         # Convert PIL image to numpy
         image = np.array(image)
@@ -47,7 +48,7 @@ def visualize_heatmaps(dataset, num_samples=100):
     """Visualize heatmaps for each image
     """
     for i in range(min(num_samples, len(dataset))):
-        image, keypoints, heatmaps = dataset[i]
+        image, keypoints, heatmaps, _ = dataset[i]
         image = np.array(image)
         image = np.transpose(image, (1, 2, 0))
         image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
@@ -95,13 +96,13 @@ def visualize_heatmaps(dataset, num_samples=100):
 
 
 train_transform = v2.Compose([
+        RandomAffine(degrees=15, translate=(0.15, 0.15), scale=(0.8, 1.2), shear=0.1),
         v2.ToTensor(),
-        # v2.RandomAffine(degrees=10, translate=(0.1, 0.1), scale=(0.9, 1)),
         v2.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.05),
         # v2.Normalize(mean=[0.472, 0.450, 0.413],
         #                     std=[0.277, 0.272, 0.273]),
     ])
 
 mpii_dataset = MPIIDataset('datasets/MPII/mpii/images', 'datasets/MPII/mpii/annotations.json', transform=train_transform)
-# visualize_dataset(mpii_dataset)
-visualize_heatmaps(mpii_dataset)
+visualize_dataset(mpii_dataset)
+# visualize_heatmaps(mpii_dataset)

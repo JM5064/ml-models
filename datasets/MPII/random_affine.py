@@ -8,36 +8,49 @@ import torch.nn as nn
 from torchvision.transforms import v2
 
 
-class AffineTransform:
+class RandomAffine(nn.Module):
 
-    def __init__(self, seed=5064):
-        # Run transformations over image and keypoints, then generate heatmap/offset maps
-        random.seed(seed)
-
-
-    def random_affine(self, 
-        image,
-        keypoints,
+    def __init__(self, 
         degrees: float | None, 
         translate: tuple[float, float] | None, 
         scale: tuple[float, float] | None,
-        shear: float | None
+        shear: float | None,
+        image_size=256
     ):
         """Applies an affine transformation onto the image and keypoints
         args:
-            image: PIL image
-            keypoints: [[x1, y1, v1], ...] keypoints
             degrees: maximum rotation in degrees
             translate: (max_x_fraction, max_y_fraction)
             scale: (min_scale, max_scale)
             shear: maximum sheer magnitude
+        """
+
+        super().__init__()
+
+        self.degrees = degrees
+        self.translate = translate
+        self.scale = scale
+        self.shear = shear
+
+        self.image_size = image_size
+
+
+    def forward(self, image, keypoints):
+        transformed_image, transformed_keypoints = self.random_affine(image, keypoints)
+
+        return transformed_image, transformed_keypoints
+
+
+    def random_affine(self, image, keypoints):
+        """Applies an affine transformation onto the image and keypoints
+        args:
+            image: PIL image
+            keypoints: [[x1, y1, v1], ...] keypoints
         
         returns:
             transformed_image: PIL image after random affine transformation
             keypoints: keypoints after random affine transformation
         """
-
-        image_size = image.size[0]
 
         identity = np.array([
             [1, 0, 0],
@@ -52,25 +65,25 @@ class AffineTransform:
 
         # For making sure the transformations are applied to the center of the image
         center_translation = np.array([
-            [1, 0, -image_size // 2],
-            [0, 1, -image_size // 2],
+            [1, 0, -self.image_size // 2],
+            [0, 1, -self.image_size // 2],
             [0, 0, 1]
         ])
 
         center_translation_back = np.array([
-            [1, 0, image_size // 2],
-            [0, 1, image_size // 2],
+            [1, 0, self.image_size // 2],
+            [0, 1, self.image_size // 2],
             [0, 0, 1]
         ])
 
-        if degrees is not None:
+        if self.degrees is not None:
             """Rotation affine matrix:
             [[cosθ -sinθ 0]
              [sinθ cosθ  0]
              [0     0    1]]
             """
 
-            rand_degree = random.uniform(-degrees, degrees)
+            rand_degree = random.uniform(-self.degrees, self.degrees)
 
             # Convert to radians
             rand_degree = rand_degree * np.pi / 180
@@ -83,20 +96,20 @@ class AffineTransform:
 
             rotation_matrix = center_translation_back @ rotation_matrix @ center_translation
 
-        if translate is not None:
+        if self.translate is not None:
             """Translate affine matrix:
             [[1 0 tx]
              [0 1 ty]
              [0 0 1 ]]
             """
 
-            max_x_fraction, max_y_fraction = translate
+            max_x_fraction, max_y_fraction = self.translate
 
             x_fraction = random.uniform(-max_x_fraction, max_x_fraction)
             y_fraction = random.uniform(-max_y_fraction, max_y_fraction)
 
-            x_translate = image_size * x_fraction
-            y_translate = image_size * y_fraction
+            x_translate = self.image_size * x_fraction
+            y_translate = self.image_size * y_fraction
 
             translation_matrix = np.array([
                 [1, 0, x_translate],
@@ -105,14 +118,14 @@ class AffineTransform:
             ])
 
         
-        if scale is not None:
+        if self.scale is not None:
             """Scale affine matrix:
             [[sx 0 0]
              [0 sy 0]
              [0 0  1]]
             """
 
-            rand_scale = random.uniform(scale[0], scale[1])
+            rand_scale = random.uniform(self.scale[0], self.scale[1])
 
             scale_matrix = np.array([
                 [rand_scale, 0, 0],
@@ -123,14 +136,14 @@ class AffineTransform:
             scale_matrix = center_translation_back @ scale_matrix @ center_translation
         
 
-        if shear is not None:
+        if self.shear is not None:
             """Shear affine matrix:
             [[1 s 0]
              [0 1 0]
              [0 0 1]]
             """
 
-            rand_shear = random.uniform(-shear, shear)
+            rand_shear = random.uniform(-self.shear, self.shear)
 
             shear_matrix = np.array([
                 [1, rand_shear, 0],
@@ -163,7 +176,15 @@ class AffineTransform:
 
 
     def transform_keypoints(self, keypoints, transformation_matrix):
-        # TODO: mark keypoints which land outside the image after the transformation as not labeled?
+        """Transforms keypoints according to transformation matrix
+        args:
+            keypoints: [[x1, y1, v1], ...] keypoints
+            transformation_matrix: 3x3 numpy affine transformation matrix
+
+        returns:
+            transformed_keypoints: keypoints after affine transformation
+        """
+
         transformed_keypoints = []
         for keypoint in keypoints:
             if keypoint[0] == -1: 
@@ -178,46 +199,15 @@ class AffineTransform:
 
             transformed_keypoint = transformation_matrix @ homogeneous_keypoint
 
-            transformed_keypoints.append([float(transformed_keypoint[0]), float(transformed_keypoint[1]), keypoint[2]])
+            new_x = float(transformed_keypoint[0])
+            new_y = float(transformed_keypoint[1])
 
+            # Mark as not labeled if transformed keypoint lands outside the image
+            if new_x < 0 or new_x > self.image_size or new_y < 0 or new_y > self.image_size:
+                transformed_keypoints.append([-1, -1, -1])
+                continue
+
+            transformed_keypoints.append([new_x, new_y, keypoint[2]])
 
         return transformed_keypoints
 
-
-
-if __name__ == "__main__":
-    image = Image.open("datasets/MPII/ak.jpg")
-
-    keypoints = [
-          [493, 640, 1],
-          [507, 507, 1],
-          [503, 370, 1],
-          [522, 370, 0],
-          [540, 494, 0],
-          [556, 617, 1],
-          [513, 370, 0],
-          [494, 191, 0],
-          [508, 158, 1],
-          [548, 70, 1],
-          [528, 367, 1],
-          [477, 311, 1],
-          [472, 195, 1],
-          [515, 186, 0],
-          [526, 272, 0],
-          [552, 325, 0]
-        ]
-
-    at = AffineTransform(seed=110)
-
-    start = time.time()
-    transformed_image, transformed_keypoints = at.random_affine(image, keypoints, 20, (0.1, 0.1), (0.8, 1.2), None)
-    end = time.time()
-    print(end - start)
-    
-    transformed_image = np.array(transformed_image)
-
-    transformed_image = cv2.cvtColor(transformed_image, cv2.COLOR_RGB2BGR)
-    cv2.imshow("image", transformed_image)
-
-    if cv2.waitKey(0) & 0xFF == ord('q'):
-        cv2.destroyAllWindows()
