@@ -1,18 +1,9 @@
-import random
 import os
-from PIL import Image
 from tqdm import tqdm
 from datetime import datetime
 import numpy as np
 
 import torch
-import torch.nn as nn
-import torch.optim as optim
-from torch.utils.data import DataLoader
-
-import torchvision
-from torchvision import datasets
-from torchvision.transforms import v2
 
 
 def to_device(obj):
@@ -65,8 +56,9 @@ def validate(model, val_loader, loss_func):
 
     mae = torch.mean(torch.abs(preds_concat - labels_concat)).item()
 
-    preds_kp = preds_concat.view(-1, 4, 2) # 4 keypoints
-    labels_kp = labels_concat.view(-1, 4, 2)
+    # Reshape to [batch, num_keypoints, 3], and grab just the x, y
+    preds_kp = preds_concat.view(-1, 16, 3)[:, :, :2]
+    labels_kp = labels_concat.view(-1, 16, 3)[:, :, :2]
 
     distances = torch.norm(preds_kp - labels_kp, dim=2)
     correct005 = (distances < 0.05).float() # if distance is < 0.05, count as correct
