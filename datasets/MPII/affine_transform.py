@@ -30,7 +30,7 @@ class AffineTransform:
             degrees: maximum rotation in degrees
             translate: (max_x_fraction, max_y_fraction)
             scale: (min_scale, max_scale)
-            shear: maximum sheer amount
+            shear: maximum sheer magnitude
         
         returns:
             transformed_image: PIL image after random affine transformation
@@ -112,7 +112,7 @@ class AffineTransform:
              [0 0  1]]
             """
 
-            rand_scale = random.uniform(scale[1], scale[0])
+            rand_scale = random.uniform(scale[0], scale[1])
 
             scale_matrix = np.array([
                 [rand_scale, 0, 0],
@@ -143,12 +143,15 @@ class AffineTransform:
 
         transformation_matrix = translation_matrix @ rotation_matrix @ scale_matrix @ shear_matrix
 
-        a = transformation_matrix[0][0]
-        b = transformation_matrix[0][1]
-        c = transformation_matrix[0][2]
-        d = transformation_matrix[1][0]
-        e = transformation_matrix[1][1]
-        f = transformation_matrix[1][2]
+        # PIL's affine transform inverts the matrix for some reason
+        inverted_transformation_matrix = np.linalg.inv(transformation_matrix)
+
+        a = inverted_transformation_matrix[0][0]
+        b = inverted_transformation_matrix[0][1]
+        c = inverted_transformation_matrix[0][2]
+        d = inverted_transformation_matrix[1][0]
+        e = inverted_transformation_matrix[1][1]
+        f = inverted_transformation_matrix[1][2]
 
         # Apply transformation to image
         transformed_image = image.transform(image.size, Image.AFFINE, (a, b, c, d, e, f), resample=Image.BILINEAR)
@@ -160,7 +163,6 @@ class AffineTransform:
 
 
     def transform_keypoints(self, keypoints, transformation_matrix):
-        # TODO: this is incorrect
         # TODO: mark keypoints which land outside the image after the transformation as not labeled?
         transformed_keypoints = []
         for keypoint in keypoints:
