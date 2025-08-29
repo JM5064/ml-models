@@ -28,7 +28,6 @@ class BlazePose(nn.Module):
         # num_keypoints heatmaps
         # num_keypoints x-offset maps
         # num_keypoints y-offset maps   -> 64 x 64 x num_keypoints * 3
-        # TODO: change this back to num_keypoints * 3 when adding in offset maps
         self.outH = nn.Conv2d(in_channels=32, out_channels=num_keypoints * 3, kernel_size=3, padding='same')
 
 

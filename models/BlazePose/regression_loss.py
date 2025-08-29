@@ -41,7 +41,6 @@ class RegressionLoss(nn.Module):
         # Calculate squared errors between visibilities
         squared_errors = (preds_visibility - labels_visibility) ** 2
         
-        # TODO: maybe get rid of this?
         # Make sure visibility = -1 doesn't affect the loss for visibility loss too
         squared_errors_masked = squared_errors * mask
 
