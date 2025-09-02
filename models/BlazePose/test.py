@@ -1,3 +1,7 @@
+"""Usage:
+python -m models.BlazePose.test
+"""
+
 import torch
 from torchvision.transforms import v2
 

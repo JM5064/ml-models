@@ -54,6 +54,10 @@ def calculate_blazepose_pck(preds_kp, labels_kp, percent):
     visibilities = labels_kp[:, :, 0]
     mask = (visibilities != -1).float()
 
+    # Mask out images where the torso doesn't exist / is too small
+    valid_torsos_mask = (torso_distances > 0.01).float()
+    mask = mask * valid_torsos_mask
+
     correct = correct * mask
 
     # Calculate pck as the number of correct keypoints over the total number of valid keypoints
