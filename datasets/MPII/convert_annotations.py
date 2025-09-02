@@ -37,6 +37,7 @@ def load_annotations(annotations_path):
 
 def create_annotations(annolist, img_train, single_person, images_dir, annotations_file_path):
     annotations = {}
+    invalid_torso = 0
     
     # Loop through entire dataset, creating annotations for each image
     for i in tqdm(range(24986)):
@@ -76,7 +77,7 @@ def create_annotations(annolist, img_train, single_person, images_dir, annotatio
         # Loop through each person (annorect) in the image
         for ridx in range(len(annorects)):
             if annorects[ridx] is None or 'annopoints' not in annorects[ridx].dtype.names or annorects[ridx]['annopoints'].size == 0:
-                print("No annotations", i)
+                # print("No annotations", i)
                 continue
 
             # Skip if the current annorect person id isn't a sufficiently separated individual
@@ -88,6 +89,11 @@ def create_annotations(annolist, img_train, single_person, images_dir, annotatio
             if person_annotation is None:
                 continue
 
+            torso_size = get_torso_size(person_annotation)
+            if torso_size is None:
+                invalid_torso += 1
+                print("NO TORSO!", len(annotations))
+
             person_annotations.append(person_annotation)
 
         if len(person_annotations) > 0:
@@ -97,6 +103,7 @@ def create_annotations(annolist, img_train, single_person, images_dir, annotatio
             json.dump(annotations, file, indent=2, indent_leaves=False)
 
     print("Done")
+    print("Total invalid torso:", invalid_torso)
 
 
 def create_bounding_box(points, image_width, image_height):
@@ -214,12 +221,46 @@ def create_person_annotation(annorect, vididx, image_width, image_height):
         "bbox": [x1, y1, x2, y2],
         "keypoints": keypoints
     }
+
+
+def get_torso_size(person_annotation):
+    keypoint_map = {
+        2: 'RH',    # right hip
+        3: 'LH',    # left hip
+        12: 'RS',   # right shoulder
+        13: 'LS',   # left shoulder
+    }
+
+    keypoints = person_annotation['keypoints']
+
+    # Return None if no torso points detected
+    torso_points = [2, 3, 12, 13]
+    hip_points = [2, 3]
+    shoulder_points = [12, 13]
+
+    def is_valid(kp):
+        return kp[0] != -1
+    
+    valid_points = [keypoints[kp] for kp in torso_points if is_valid(keypoints[kp])]
+
+    if not (is_valid(keypoints[2]) and is_valid(keypoints[13])) :
+    # and not(is_valid(keypoints[3]) and is_valid(keypoints[12])):
+        return None
+    
+    # if len(valid_points) < 2:
+    #     return None
+    
+    return 0
+    
+
+ 
+
         
 
 def main():
     images_dir = 'datasets/MPII/mpii/images'
     annotations_path = 'datasets/MPII/mpii/mpii_human_pose_v1_u12_1.mat'
-    annotations_json = 'datasets/MPII/mpii/annotations.json'
+    annotations_json = 'datasets/MPII/mpii/lol.json'
 
     annolist, img_train, single_person = load_annotations(annotations_path)
     create_annotations(annolist, img_train, single_person, images_dir, annotations_json)

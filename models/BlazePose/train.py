@@ -2,6 +2,7 @@ import os
 from tqdm import tqdm
 from datetime import datetime
 import numpy as np
+import time
 
 import torch
 
@@ -21,6 +22,44 @@ def log_results(file, metrics):
 
     file.write('\n')
     file.flush() # Makes file update immediately
+
+
+def calculate_blazepose_pck(preds_kp, labels_kp, percent):
+    """Calculate pck for keypoints. A keypoint is considered correct if it's within percent% of the torso size
+    args:
+        preds_kp: [batch, num_keypoints, 2]
+        labels_kp: [batch, num_keypoints, 2]
+        percent: number, percentage for pck threshold
+
+    returns:
+        pck: % correct keypoints according to threshold    
+    """
+
+    # 2: right hip, 3: left hip, 12: right shoulder, 13: left shoulder
+    left_hip_labels = labels_kp[:, 3, :]
+    right_shoulder_labels = labels_kp[:, 12, :]
+
+    torso_size_labels = torch.norm(left_hip_labels - right_shoulder_labels, dim=1)
+
+    # Calculate distances between predicted keypoints and labels
+    distances = torch.norm(preds_kp - labels_kp, dim=2)
+
+    # Normalize distances wrt torso size instead of image size
+    torso_distances = distances / torso_size_labels[:, None]
+
+    # Count as correct if the distance is within pck% of the torso size
+    correct = (torso_distances < percent).float()
+
+    # Make sure that not labeled points (-1) are not included in the correctness calculation (use x for the visibility)
+    visibilities = labels_kp[:, :, 0]
+    mask = (visibilities != -1).float()
+
+    correct = correct * mask
+
+    # Calculate pck as the number of correct keypoints over the total number of valid keypoints
+    pck = correct.sum() / mask.sum()
+
+    return pck
 
 
 def validate(model, val_loader, loss_func):
@@ -60,9 +99,9 @@ def validate(model, val_loader, loss_func):
     preds_kp = preds_concat.view(-1, 16, 3)[:, :, :2]
     labels_kp = labels_concat.view(-1, 16, 3)[:, :, :2]
 
-    distances = torch.norm(preds_kp - labels_kp, dim=2)
-    correct005 = (distances < 0.05).float() # if distance is < 0.05, count as correct
-    correct02 = (distances < 0.2).float() # if distance is < 0.2, count as correct
+    # Calculate pck metrics
+    correct005 = calculate_blazepose_pck(preds_kp, labels_kp, 0.05)
+    correct02 = calculate_blazepose_pck(preds_kp, labels_kp, 0.2)
 
     pck005 = correct005.mean().item()
     pck02 = correct02.mean().item()
@@ -93,7 +132,7 @@ def train(
     time = str(datetime.now())
     os.mkdir(runs_dir + "/" + time)
     logfile = open(runs_dir + "/" + time + "/metrics.txt", "a")
-    best_val_loss = float('inf')
+    best_pck005 = 0
 
     # training loop
     for i in range(start_epoch, num_epochs):
@@ -142,10 +181,11 @@ def train(
             'scheduler': scheduler.state_dict()
         }
 
-        average_val_loss = metrics["average_val_loss"]
-        if average_val_loss < best_val_loss:
+        # Save best model best on pck@0.05
+        pck005 = metrics['pck@0.05']
+        if pck005 > best_pck005:
             torch.save(checkpoint, runs_dir + "/" + time + "/best.pt")
-            best_val_loss = average_val_loss
+            best_pck005 = pck005
 
         torch.save(checkpoint, runs_dir + "/" + time + "/last.pt")
 
