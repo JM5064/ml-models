@@ -216,6 +216,10 @@ class MPIIDataset(Dataset):
         x_offset_map = (x_heatmap_true_center - cols) * (heatmap_channel > threshold)
         y_offset_map = (y_heatmap_true_center - rows) * (heatmap_channel > threshold)
 
+        # Normalize offsets
+        x_offset_map /= self.heatmap_size
+        y_offset_map /= self.heatmap_size
+
         mask = (heatmap_channel > threshold).astype(np.float32)
 
         return x_offset_map, y_offset_map, mask

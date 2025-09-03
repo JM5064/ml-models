@@ -1,5 +1,3 @@
-import numpy as np
-
 import torch
 import torch.nn as nn
 
@@ -10,7 +8,7 @@ class HeatmapLoss(nn.Module):
         super().__init__()
 
 
-    def forward(self, preds, heatmap_offset_labels, offset_masks, regression_labels):
+    def forward(self, preds, heatmap_offset_labels, regression_labels):
         if preds.shape != heatmap_offset_labels.shape:
             print("Uh oh, heatmaps predictions and labels have differing shapes", preds.shape, heatmap_offset_labels.shape)
 
@@ -19,22 +17,14 @@ class HeatmapLoss(nn.Module):
         # Get visibility of each keypoint
         visibility = regression_labels[..., 2]
 
-        # Extract heatmap, x offset, and y offset maps
+        # Extract heatmap labels and preds
         heatmap_labels = heatmap_offset_labels[:, :num_keypoints, :, :]
-        x_offset_labels = heatmap_offset_labels[:, num_keypoints:2*num_keypoints, :, :]
-        y_offset_labels = heatmap_offset_labels[:, 2*num_keypoints:3*num_keypoints, :, :]
-
         heatmap_preds = preds[:, :num_keypoints, :, :]
-        x_offset_preds = preds[:, num_keypoints:2*num_keypoints, :, :]
-        y_offset_preds = preds[:, 2*num_keypoints:3*num_keypoints, :, :]
 
+        # Calculate heatmap loss
         heatmap_loss = self.get_heatmap_loss(heatmap_preds, heatmap_labels, visibility)
-        x_offset_loss = self.get_offset_loss(x_offset_preds, x_offset_labels, offset_masks, visibility)
-        y_offset_loss = self.get_offset_loss(y_offset_preds, y_offset_labels, offset_masks, visibility)
 
-        total_loss = heatmap_loss + x_offset_loss + y_offset_loss
-
-        return total_loss
+        return heatmap_loss
     
 
     def get_heatmap_loss(self, heatmap_preds, heatmap_labels, visibility):
@@ -47,27 +37,6 @@ class HeatmapLoss(nn.Module):
         # Expand mask to same shape as heatmap
         mask = mask[:, :, None, None]
         mask = mask.expand_as(squared_errors)
-
-        masked_squared_errors = squared_errors * mask
-
-        loss = masked_squared_errors.sum() / (mask.sum() + 1e-8)
-
-        return loss
-
-
-    def get_offset_loss(self, offset_preds, offset_labels, offset_masks, visibility):
-        # Calculate squared errors between each pixel
-        squared_errors = (offset_preds - offset_labels) ** 2
-
-        # Mask out the non visible heatmaps
-        mask = (visibility != -1).float()
-
-        # Expand mask to same shape as heatmap
-        mask = mask[:, :, None, None]
-        mask = mask.expand_as(squared_errors)
-        
-        # Mask out unused areas in the offset labels
-        mask = mask * offset_masks
 
         masked_squared_errors = squared_errors * mask
 
@@ -250,7 +219,7 @@ if __name__ == "__main__":
 
     criterion = HeatmapLoss()
 
-    loss = criterion(outputs, labels, offset_masks, regression_labels)
+    loss = criterion(outputs, labels, regression_labels)
     print("Total loss:", loss)
 
 
