@@ -15,7 +15,8 @@ class RandomAffine(nn.Module):
         translate: tuple[float, float] | None, 
         scale: tuple[float, float] | None,
         shear: float | None,
-        image_size=256
+        image_size=256,
+        seed=None
     ):
         """Applies an affine transformation onto the image and keypoints
         args:
@@ -33,6 +34,9 @@ class RandomAffine(nn.Module):
         self.shear = shear
 
         self.image_size = image_size
+
+        if seed is not None:
+            random.seed(seed)
 
 
     def forward(self, image, keypoints):
