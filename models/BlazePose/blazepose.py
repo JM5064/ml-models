@@ -98,14 +98,14 @@ class BlazeBlock(nn.Module):
     def forward(self, x):
         x = self.conv(x)
         x = self.bn1(x)
-        x = F.relu(x)
+        x = F.relu6(x)
 
         x_resid = x
 
         x = self.dw(x)
         x = self.bn2(x)
 
-        x = F.relu(x)
+        x = F.relu6(x)
         x = self.pw1(x)
         x = self.pw2(x)
 
@@ -132,7 +132,7 @@ class PoseBlock(nn.Module):
     def forward(self, x):
         x = self.conv(x)
         x = self.bn1(x)
-        x = F.relu(x)
+        x = F.relu6(x)
 
         x_resid = x
 
@@ -140,7 +140,7 @@ class PoseBlock(nn.Module):
         x = self.bn2(x)
 
         x = self.pw1(x)
-        x = F.relu(x)
+        x = F.relu6(x)
         x = self.pw2(x)
 
         x = x + x_resid
@@ -163,7 +163,7 @@ class HeatmapBlock(nn.Module):
 
         x = self.conv(x)
         x = self.bn(x)
-        x = F.relu(x)
+        x = F.relu6(x)
 
         if prev_x is not None:
             prev_x = self.upsample(prev_x)
@@ -175,5 +175,5 @@ class HeatmapBlock(nn.Module):
 
 
 if __name__ == "__main__":
-    model = BlazePose(17)
+    model = BlazePose(16)
     profile = summary(model, input_size=(3, 256, 256))
