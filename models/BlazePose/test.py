@@ -9,7 +9,7 @@ from .train import validate, load_checkpoint, to_device
 from .blazepose import BlazePose
 from datasets.MPII.mpii_dataset import MPIIDataset
 from torch.utils.data import DataLoader
-from .combined_loss import CombinedLoss
+from .losses.combined_loss import CombinedLoss
 
 
 def load_model(model, model_path, device):
