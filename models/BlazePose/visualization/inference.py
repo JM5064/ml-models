@@ -1,5 +1,5 @@
 """Usage:
-python -m models.BlazePose.inference
+python -m models.BlazePose.visualization.inference
 """
 
 import numpy as np
@@ -9,7 +9,7 @@ from PIL import Image
 import torch
 from torchvision.transforms import v2
 
-from .blazepose import BlazePose
+from ..blazepose import BlazePose
 from datasets.MPII.mpii_dataset import MPIIDataset
 
 
@@ -56,7 +56,7 @@ def inference(model, dataset):
 
                 center = (int(x * 256), int(y * 256))
                 cv2.circle(image, center,  3, (0, 0, 255), -1)
-                print(x, y, vis)
+                print(x.item(), y.item(), vis.item())
         print()
 
         cv2.imshow('Dataset', image)

@@ -16,9 +16,20 @@ def to_device(obj):
     return obj
 
 
-def log_results(file, metrics):
+def log_results(file_path, metrics):
+    # Open file
+    file = open(file_path, "a")
+
+    # Create header if file is blank
+    if os.path.getsize(file_path) == 0:
+        for metric in metrics:
+            file.write(f'{metric},')
+        
+        file.write('\n')
+
+    # Log metrics
     for metric in metrics:
-        file.write(f'{metric}: {metrics[metric]}\t')
+            file.write(f'{metrics[metric]},')
 
     file.write('\n')
     file.flush() # Makes file update immediately
@@ -135,7 +146,7 @@ def train(
     # create log file
     time = str(datetime.now())
     os.mkdir(runs_dir + "/" + time)
-    logfile = open(runs_dir + "/" + time + "/metrics.txt", "a")
+    logfile_path = runs_dir + "/" + time + "/metrics.csv"
     best_pck005 = 0
 
     # training loop
@@ -171,7 +182,7 @@ def train(
         print(f'Train Loss: {average_train_loss}\tValidation Loss: {metrics["average_val_loss"]}')
         print(f'MAE: {metrics["mae"]}\tPCK@0.05: {metrics["pck@0.05"]}\tPCK@0.2: {metrics["pck@0.2"]}')
 
-        log_results(logfile, metrics)
+        log_results(logfile_path, metrics)
 
         # Step scheduler
         if scheduler:
@@ -200,8 +211,8 @@ def train(
     print(f'MAE: {metrics["mae"]}\tPCK@0.05: {metrics["pck@0.05"]}\tPCK@0.2: {metrics["pck@0.2"]}')
     print(f'Test Loss: {metrics["average_val_loss"]}')
 
-    test_logfile = open(runs_dir + "/" + time + "/test_metrics.txt", "a")
-    log_results(test_logfile, metrics)
+    test_logfile_path = runs_dir + "/" + time + "/test_metrics.csv"
+    log_results(test_logfile_path, metrics)
 
 
 def load_checkpoint(checkpoint_path, model, optimizer, scheduler):
