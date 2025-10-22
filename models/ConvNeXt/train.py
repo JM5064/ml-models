@@ -30,6 +30,7 @@ def log_results(file, metrics):
         file.write(f'{metric}: {metrics[metric]}\t')
 
     file.write('\n')
+    file.flush() # Makes file update immediately
 
 
 def compute_class_weights(train_dir_path):
