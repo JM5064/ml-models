@@ -3,7 +3,7 @@ datasets/Caltech-256/Caltech-256
 datasets/MPII/mpii
 
 # Training runs
-**/runs/
+**/runs**/
 
 .DS_Store
 
