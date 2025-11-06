@@ -65,6 +65,17 @@ if __name__ == "__main__":
     num_keypoints = 16
 
     model = BlazePose(num_keypoints=num_keypoints)
+    
+    weights = torch.load("models/BlazePose/runs_pretraining/30epochs/best.pt")
+    model.bb1.load_state_dict(weights["bb1"])
+    # model.bb2.load_state_dict(weights["bb2"])
+
+    for param in model.bb1.parameters():
+        param.requires_grad = False
+
+    # for param in model.bb2.parameters():
+    #     param.requires_grad = False
+
     model = to_device(model)
 
     adamW_params = {
@@ -76,9 +87,12 @@ if __name__ == "__main__":
     optimizer = optim.AdamW(model.parameters(), **adamW_params)
 
     def convnext_scheduler(optimizer, num_warmup_epochs, total_epochs):
-        warmup_scheduler = optim.lr_scheduler.LinearLR(optimizer, start_factor=1/num_warmup_epochs, total_iters=num_warmup_epochs)
-
         cosine_scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=total_epochs-num_warmup_epochs, eta_min=1e-5)
+
+        if num_warmup_epochs == 0:
+            return cosine_scheduler
+
+        warmup_scheduler = optim.lr_scheduler.LinearLR(optimizer, start_factor=1/num_warmup_epochs, total_iters=num_warmup_epochs)
 
         return optim.lr_scheduler.SequentialLR(optimizer, schedulers=[warmup_scheduler, cosine_scheduler], milestones=[num_warmup_epochs])
 
