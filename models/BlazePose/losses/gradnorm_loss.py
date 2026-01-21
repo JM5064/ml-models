@@ -46,7 +46,7 @@ class GradNormLoss(nn.Module):
         Lgrad = self.compute_gradnorm_loss(losses, layer_weights)
 
         # Compute gradients for Lgrad
-        Lgrad.backward()
+        # Lgrad.backward()
 
         # Compute standard gradients 
         # combined_loss_sum.backward(retain_graph=False)
@@ -57,7 +57,7 @@ class GradNormLoss(nn.Module):
         weights_sum = torch.sum(self.loss_weights)
         scale_factor = self.num_tasks / weights_sum
 
-        self.loss_weights *= scale_factor
+        self.loss_weights = self.loss_weights * scale_factor
 
         return combined_loss_sum
 
@@ -69,6 +69,10 @@ class GradNormLoss(nn.Module):
         for i in range(self.num_tasks):
             weighted_loss = self.loss_weights[i] * losses[i]
 
+            # TODO: make sure gradnorm loss isnt computed when validating
+            if not layer_weights.requires_grad:
+                return 0
+            
             # Compute gradient of weighted loss wrt weights W
             weighted_loss_gradient = torch.autograd.grad(weighted_loss, layer_weights, 
                                                          retain_graph=True, create_graph=True)
