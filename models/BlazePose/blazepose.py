@@ -43,9 +43,15 @@ class BlazePose(nn.Module):
     
 
     def forward(self, x):
-        # x -> input tensor, and eventually regression path
-        # y -> center path
-        # z -> heatmap path
+        """
+        x -> input tensor, and eventually regression path
+        y -> center path
+        z -> heatmap path
+
+        Returns:
+            x: Regression output
+            z5: Heatmap + offset map output
+        """
 
         x = self.bb1(x)
 
@@ -53,7 +59,7 @@ class BlazePose(nn.Module):
         y1 = self.bb2(x)
         y2 = self.bb3(y1)
         y3 = self.bb4(y2)
-        y4 = self.bb5(y3)
+        y4 = self.bb5(y3) # last shared layer between regression and heatmap paths
 
         # Heatmap path
         z1 = self.hb1(y4, None)
@@ -87,6 +93,10 @@ class BlazeBlock(nn.Module):
         self.conv = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=3, stride=2, padding=1)
         self.bn1 = nn.BatchNorm2d(out_channels)
 
+        # Regular convolution for good measure
+        # self.conv2 = nn.Conv2d(in_channels=out_channels, out_channels=out_channels, kernel_size=3, padding="same")
+        # self.bn22 = nn.BatchNorm2d(out_channels)
+
         # Depthwise seperable convolution
         # Add batch norm after pointwise? (convnext doesnt do this)
         self.dw = nn.Conv2d(in_channels=out_channels, out_channels=out_channels, groups=out_channels, kernel_size=3, padding='same')
@@ -101,6 +111,10 @@ class BlazeBlock(nn.Module):
         x = F.relu6(x)
 
         x_resid = x
+
+        # x = self.conv2(x)
+        # x = self.bn22(x)
+        # x = F.relu6(x)
 
         x = self.dw(x)
         x = self.bn2(x)

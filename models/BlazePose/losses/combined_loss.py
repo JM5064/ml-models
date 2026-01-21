@@ -10,7 +10,7 @@ from .offset_loss import OffsetLoss
 
 class CombinedLoss(nn.Module):
 
-    def __init__(self, a=1, b=0.75, c=0.25):
+    def __init__(self, a=4, b=3, c=2):
         super().__init__()
 
         self.regression_loss_func = RegressionLoss()
@@ -27,16 +27,18 @@ class CombinedLoss(nn.Module):
         heatmap_loss = self.heatmap_loss_func(heatmap_preds, heatmap_labels, regression_labels)
         offset_loss = self.offset_loss_func(heatmap_preds, heatmap_labels, offset_masks, regression_labels)
 
-        regression_weight = self.a / regression_loss.detach()
-        heatmap_weight = self.b / heatmap_loss.detach()
-        offset_weight = self.c / offset_loss.detach()
+        # regression_weight = self.a * regression_loss.detach()
+        # heatmap_weight = self.b * heatmap_loss.detach()
+        # offset_weight = self.c * offset_loss.detach()
 
         # Weight each loss function
-        combined_loss = regression_weight * regression_loss + heatmap_weight * heatmap_loss + offset_weight * offset_loss
-        
-        # print("Regression loss:", regression_loss.item(), " -> ", (regression_weight * regression_loss).item())
-        # print("Heatmap loss:", heatmap_loss.item(), " -> ", (heatmap_weight * heatmap_loss).item())
-        # print("Offset loss:", offset_loss.item(), " -> ", (offset_weight * offset_loss).item())
+        # combined_loss = regression_weight * regression_loss + heatmap_weight * heatmap_loss + offset_weight * offset_loss
+        combined_loss = self.a * regression_loss + self.b * heatmap_loss + self.c * offset_loss
+
+
+        # print("Regression loss:", regression_loss.item(), " -> ", (self.a * regression_loss).item())
+        # print("Heatmap loss:", heatmap_loss.item(), " -> ", (self.b * heatmap_loss).item())
+        # print("Offset loss:", offset_loss.item(), " -> ", (self.c * offset_loss).item())
         # print("Combined loss:", combined_loss.item())
 
 

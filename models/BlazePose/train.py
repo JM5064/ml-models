@@ -141,6 +141,7 @@ def train(
         optimizer,
         scheduler,
         start_epoch=0,
+        unfreeze_epoch=40,
         runs_dir="models/BlazePose/runs",
     ):
     # create log file
@@ -152,6 +153,11 @@ def train(
     # training loop
     for i in range(start_epoch, num_epochs):
         print(f'Epoch {i+1}/{num_epochs}')
+
+        if i == unfreeze_epoch:
+            print("Unfreezing initial layer(s)")
+            for param in model.bb1.parameters():
+                param.requires_grad = True
 
         model.train()
         running_loss = 0.0
