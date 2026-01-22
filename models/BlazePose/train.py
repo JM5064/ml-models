@@ -50,26 +50,30 @@ def calculate_blazepose_pck(preds_kp, labels_kp, percent):
     left_hip_labels = labels_kp[:, 3, :]
     right_shoulder_labels = labels_kp[:, 12, :]
 
+    # Make sure that not labeled points (-1) are not included in the correctness calculation (use x for the visibility)
+    visibilities = labels_kp[:, :, 0]
+    visibility_mask = (visibilities != -1).float()
+
+    # Calculate the torso sizes for each label
     torso_size_labels = torch.norm(left_hip_labels - right_shoulder_labels, dim=1)
+
+    # Mask out images where the torso isn't visible / is too small
+    left_hip_visibilities = (left_hip_labels[:, 0] != -1).float()
+    right_shoulder_visibilities = (right_shoulder_labels[:, 0] != -1).float()
+    valid_torsos_mask = left_hip_visibilities * right_shoulder_visibilities * (torso_size_labels > 0.01).float()
 
     # Calculate distances between predicted keypoints and labels
     distances = torch.norm(preds_kp - labels_kp, dim=2)
+    distances = distances * visibility_mask
 
     # Normalize distances wrt torso size instead of image size
-    torso_distances = distances / torso_size_labels[:, None]
+    # [:, None] reshapes from 1 * N to N * 1
+    norm_distances = distances / torso_size_labels[:, None]
+    norm_distances = norm_distances * valid_torsos_mask[:, None]
 
     # Count as correct if the distance is within pck% of the torso size
-    correct = (torso_distances < percent).float()
-
-    # Make sure that not labeled points (-1) are not included in the correctness calculation (use x for the visibility)
-    visibilities = labels_kp[:, :, 0]
-    mask = (visibilities != -1).float()
-
-    # Mask out images where the torso doesn't exist / is too small
-    valid_torsos_mask = (torso_distances > 0.01).float()
-    mask = mask * valid_torsos_mask
-
-    correct = correct * mask
+    mask = visibility_mask * valid_torsos_mask[:, None]
+    correct = (norm_distances < percent).float()
 
     # Calculate pck as the number of correct keypoints over the total number of valid keypoints
     pck = correct.sum() / mask.sum()
