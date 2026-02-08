@@ -1,6 +1,7 @@
 # Datasets
 datasets/Caltech-256/Caltech-256
 datasets/MPII/mpii
+datasets/FreiHAND/FreiHAND
 
 # Training runs
 **/runs**/
