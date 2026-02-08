@@ -25,18 +25,11 @@ def visualize_keypoints(images_dir, keypoints_path, scale_path, intrinsics_path)
 
         # Plot keypoints
         keypoints = np.array(xyz_json[i])
-        depths = keypoints[:, 2]
 
-        # Normalize wrt wrist (keypoint 0)
-        wrist_depth = depths[0]
+        keypoints = (keypoints @ np.transpose(K)) / keypoints[:, 2:3]
 
-        normalized_depths = depths - wrist_depth
-        print(normalized_depths)
         for keypoint in keypoints:
-            xy = (K @ keypoint) / keypoint[2]
-            xy = xy[:2]
-
-            cv2.circle(image, (int(xy[0]), int(xy[1])), 1, (0, 0, 255), -1)
+            cv2.circle(image, (int(keypoint[0]), int(keypoint[1])), 1, (0, 0, 255), -1)
 
         cv2.imshow("Image", image)
         if cv2.waitKey(0) & 0xFF == ord('q'):

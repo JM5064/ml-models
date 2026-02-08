@@ -34,9 +34,16 @@ class FreiHAND(Dataset):
         self.intrinsics_json = json.load(open(intrinsics_json, "r"))
         self.scale_json = json.load(open(scale_json, "r"))
 
+        # data contains (image name, xyz keypoints, intrinsics matrix K) for each image
         self.data = []
         for i in range(len(self.image_names)):
-            self.data.append((self.image_names[i], self.keypoints_json[i]))
+            self.data.append(
+                (
+                    self.image_names[i], 
+                    np.array(self.keypoints_json[i]), 
+                    np.array(self.intrinsics_json[i])
+                )
+            )
 
         self.transform = transform
         self.image_size = image_size
@@ -54,62 +61,60 @@ class FreiHAND(Dataset):
 
         returns:
             np_image: ndarray of the input image
-            letterbox_keypoints: [[x1, y1, v1], ...] keypoints
+            tensor_keypoints: [[x1, y1, z1], ...] keypoints
             heatmaps: ndarray of the heatmaps
+            offset_masks: ndarray of offset masks
         """
 
-        image_name, keypoints = self.data[index]
+        image_name, keypoints, K = self.data[index]
         image_path = os.path.join(self.images_dir, image_name)
 
         image = Image.open(image_path)
 
         # Apply transformations
         if self.transform:
-            transformed_image, transformed_keypoints = self.transform(image, keypoints)
+            image, keypoints = self.transform(image, keypoints)
+            keypoints = np.array(keypoints).squeeze()
 
         # Convert image to numpy
-        np_image = np.array(transformed_image)
+        np_image = np.array(image)
+
+        # Project xyZ keypoints
+        projected_keypoints = self.project_keypoints(keypoints, K)
+
+        # Normalize keypoints
+        normalized_keypoints = self.normalize_keypoints(projected_keypoints)
         
         # Convert keypoints to tensor
-        tensor_keypoints = torch.tensor(transformed_keypoints, dtype=torch.float32)
+        tensor_keypoints = torch.tensor(normalized_keypoints, dtype=torch.float32)
 
         # Create heatmaps / offset maps
-        heatmaps, offset_masks = self.create_heatmap_and_offset_maps(transformed_keypoints)
+        heatmaps, offset_masks = self.create_heatmap_and_offset_maps(projected_keypoints)
 
         return np_image, tensor_keypoints, heatmaps, offset_masks
 
 
     def project_keypoints(self, keypoints, K):
-        # Project and normalize keypoints
-        keypoints_xy = np.array([self.project_keypoint(keypoint, K) for keypoint in keypoints])
-        keypoints_xy = self.normalize_keypoints(keypoints_xy)
-
-        # Normalize depth
-        keypoints_z = self.normalize_depths(keypoints)
-
-        return np.concatenate([keypoints_xy, keypoints_z])
-
-
-    def project_keypoint(self, keypoint, K):
-        """Projects 3D keypoint onto 2D image space
+        """Project 3D keypoints onto 2D image space, leaving Z coordinate the same
         args:
-            keypoint: np.array([[X1, Y1, Z1], [X2, Y2, Z2], ...])
-            K: np.array(3x3 intrinsics matrix)
+            keypoints: np.array([[X1, Y1, Z1], ...])
+            K: np.array([3D intrinsics matrix])
         
         returns:
-            xy: np.array([x, y])
+            keypoints_xyZ: np.array([[x1, y1, Z1], ...])
         """
 
-        xy = (K @ keypoint) / keypoint[2]
-        xy = xy[:2]
+        # Project keypoints
+        keypoints_xyZ = (keypoints @ np.transpose(K)) / keypoints[:, 2:3]
+        keypoints_xyZ[:, 2] = keypoints[:, 2]
 
-        return xy
+        return keypoints_xyZ
     
 
     def normalize_depths(self, keypoints):
         """Normalize z coordinate with respect to the wrist
         args:
-            keypoints: np.array([[X1, Y1, Z1], [X2, Y2, Z2], ...])
+            keypoints: np.array([[X1, Y1, Z1], ...])
 
         returns:
             normalized_depths: np.array([z1, z2, ...])
@@ -128,96 +133,95 @@ class FreiHAND(Dataset):
     def normalize_keypoints(self, keypoints):
         """Normalizes keypoints between 0-1
         args:
-            keypoints: [[x1, y1], ...] keypoints
+            keypoints: np.array([[x1, y1, Z1], ...])
 
         returns:
-            normalized_keypoints: [[x1', y1'], ...] normalized keypoints
+            normalized_keypoints: [[x1', y1', z1'], ...] normalized keypoints
         """
         
-        normalized_keypoints = keypoints / self.image_size
+        normalized_keypoints = keypoints.copy()
+
+        # Normalize xy
+        normalized_keypoints[:, :2] /= self.image_size
+
+        # Normalize z
+        normalized_keypoints[:, 2] = self.normalize_depths(normalized_keypoints)
 
         return normalized_keypoints
-
-    
-    def create_heatmap_channel(self, x, y, sigma=1):
-        rows = np.arange(self.image_size, dtype=np.float32)[:, None] # Column vector (height, 1)
-        cols = np.arange(self.image_size, dtype=np.float32)[None, :] # Row vector (1, width)
-
-        # Get squared distances from each point i, j to x, y
-        dist_sq = (cols - x) ** 2 + (rows - y) ** 2 
-
-        # Compute Gaussians
-        channel = np.exp(-dist_sq / (2 * sigma ** 2))
-
-        channel = cv2.resize(channel, (self.heatmap_size, self.heatmap_size), interpolation=cv2.INTER_LINEAR)
-    
-        return channel
     
 
-    def create_offset_channel(self, x, y, heatmap_channel, threshold=1e-3):
-        """Creates x and y offset channels for a given radius around the keypoint
+    def create_heatmap_and_offset_maps(self, keypoints, sigma=1.0, radius_threshold=5):
+        """
         args:
-            x, y: the x, y positions of the keypoint in image space (not normalized)
-            threshold: a heatmap value must pass this threshold for its offset to be calcualted
+            keypoints: np.array([[x1, y1, Z1], ...])
+            sigma: standard deviation for Gaussian heatmap
+            radius_threshold: Max distance for valid offsets
 
         returns:
-            x_offset_map: offset map in the x direction
-            y_offset_map: offset map in the y direction
-            mask: a mask signifying where the relevant offsets are
+            heatmap_and_offset_maps: np.array of concatenated heatmap and offset maps
+            offset_masks: np.array offset mask for masking offset losses
         """
+        num_keypoints = len(keypoints)
 
-        # Return None if keypoint not present
-        if x == -1:
-            return None, None, None
-        
-        x_heatmap_true_center = (x / self.image_size) * self.heatmap_size
-        y_heatmap_true_center = (y / self.image_size) * self.heatmap_size
+        # Create coordinate grid
+        x_grid = np.arange(self.heatmap_size)
+        y_grid = np.arange(self.heatmap_size)
+        xx, yy = np.meshgrid(x_grid, y_grid)
 
-        rows = np.arange(self.heatmap_size, dtype=np.float32)[:, None] # Column vector (height, 1)
-        cols = np.arange(self.heatmap_size, dtype=np.float32)[None, :] # Row vector (1, width)
+        # Scale keypoints down to heatmap size
+        scale = self.heatmap_size / self.image_size     
+        scaled_keypoints = keypoints * scale
 
-        x_offset_map = (x_heatmap_true_center - cols) * (heatmap_channel > threshold)
-        y_offset_map = (y_heatmap_true_center - rows) * (heatmap_channel > threshold)
+        # Reshape keypoints for broadcasting
+        xs = scaled_keypoints[:, 0].reshape(num_keypoints, 1, 1)
+        ys = scaled_keypoints[:, 1].reshape(num_keypoints, 1, 1)
 
-        # Normalize offsets
-        x_offset_map /= self.heatmap_size
-        y_offset_map /= self.heatmap_size
+        # Calculate Offsets
+        x_offsets = xs - xx
+        y_offsets = ys - yy
 
-        mask = (heatmap_channel > threshold).astype(np.float32)
+        # Calculate squared distances
+        dist_sq = x_offsets ** 2 + y_offsets ** 2
 
-        return x_offset_map, y_offset_map, mask
+        # Create heatmaps
+        heatmaps = np.exp(-dist_sq / (2 * sigma ** 2))
 
+        # Generate offset masks
+        offset_masks = (dist_sq <= radius_threshold ** 2).astype(np.float32)
 
-    def create_heatmap_and_offset_maps(self, keypoints):        
-        heatmaps = []
-        x_offset_maps = []
-        y_offset_maps = []
-        offset_masks = []
-
-        for keypoint in keypoints:
-            if keypoint[0] == -1:
-                # Append blank heatmaps and offset maps if point not visible
-                heatmaps.append(np.zeros((self.heatmap_size, self.heatmap_size), dtype=np.float32))
-                x_offset_maps.append(np.zeros((self.heatmap_size, self.heatmap_size), dtype=np.float32))
-                y_offset_maps.append(np.zeros((self.heatmap_size, self.heatmap_size), dtype=np.float32))
-                offset_masks.append(np.zeros((self.heatmap_size, self.heatmap_size), dtype=np.float32))
-
-                continue
-
-            # Calculate heatmap and offset map for each keypoint
-            heatmap_channel = self.create_heatmap_channel(keypoint[0], keypoint[1])
-            heatmaps.append(heatmap_channel)
-
-            x_offset_channel, y_offset_channel, offset_mask = self.create_offset_channel(keypoint[0], keypoint[1], heatmap_channel)
-
-            x_offset_maps.append(x_offset_channel)
-            y_offset_maps.append(y_offset_channel)
-            offset_masks.append(offset_mask)
+        # Apply offset masks
+        x_offset_maps = x_offsets * offset_masks
+        y_offset_maps = y_offsets * offset_masks
 
         # Combine heatmaps and offset maps
-        heatmaps.extend(x_offset_maps)
-        heatmaps.extend(y_offset_maps)
+        heatmap_and_offset_maps = np.concatenate([heatmaps, x_offset_maps, y_offset_maps], axis=0)
 
-        return np.array(heatmaps), np.array(offset_masks)
+        return heatmap_and_offset_maps, offset_masks
 
 
+if __name__ == "__main__":
+    from torch.utils.data import DataLoader
+    from torchvision.transforms import v2
+
+    images_dir = 'datasets/FreiHAND/FreiHAND/FreiHAND_pub_v2_eval/evaluation/rgb'
+    keypoints_json = 'datasets/FreiHAND/FreiHAND/FreiHAND_pub_v2_eval/evaluation_xyz.json'
+    intrinsics_json = 'datasets/FreiHAND/FreiHAND/FreiHAND_pub_v2_eval/evaluation_K.json'
+    scale_json = 'datasets/FreiHAND/FreiHAND/FreiHAND_pub_v2_eval/evaluation_scale.json'
+
+    transform = v2.Compose([
+        v2.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.05),
+        v2.ToTensor(),
+        v2.Normalize(mean=[0.472, 0.450, 0.413],
+                            std=[0.277, 0.272, 0.273]),
+    ])
+
+    freihand = FreiHAND(images_dir, keypoints_json, intrinsics_json, scale_json, transform=transform)
+
+    dl = DataLoader(freihand, batch_size=1, shuffle=False)
+
+    for item in dl:
+        # for i in range(len(item)):
+        #     print(item[i])
+        #     print("--------------------------------")
+
+        break
