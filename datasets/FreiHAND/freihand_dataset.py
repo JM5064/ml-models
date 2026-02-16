@@ -25,7 +25,7 @@ class FreiHAND(Dataset):
         scale_json,
         transform=None, 
         image_size=224, 
-        heatmap_size=64
+        heatmap_size=56
     ):
         self.images_dir = images_dir
         self.image_names = sorted(os.listdir(images_dir))
@@ -40,8 +40,9 @@ class FreiHAND(Dataset):
             self.data.append(
                 (
                     self.image_names[i], 
-                    np.array(self.keypoints_json[i]), 
-                    np.array(self.intrinsics_json[i])
+                    # training images are duplicated 4 times with differing backgrounds
+                    np.array(self.keypoints_json[i % len(self.keypoints_json)]),
+                    np.array(self.intrinsics_json[i % len(self.intrinsics_json)])
                 )
             )
 
@@ -194,7 +195,7 @@ class FreiHAND(Dataset):
         y_offset_maps = y_offsets * offset_masks
 
         # Combine heatmaps and offset maps
-        heatmap_and_offset_maps = np.concatenate([heatmaps, x_offset_maps, y_offset_maps], axis=0)
+        heatmap_and_offset_maps = np.concatenate([heatmaps, x_offset_maps, y_offset_maps], axis=0).astype(np.float32)
 
         return heatmap_and_offset_maps, offset_masks
 
@@ -220,8 +221,8 @@ if __name__ == "__main__":
     dl = DataLoader(freihand, batch_size=1, shuffle=False)
 
     for item in dl:
-        # for i in range(len(item)):
-        #     print(item[i])
-        #     print("--------------------------------")
+        for i in range(len(item)):
+            print(item[i])
+            print("--------------------------------")
 
         break
