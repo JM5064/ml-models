@@ -73,7 +73,7 @@ def calculate_blazepose_pck(preds_kp, labels_kp, percent):
 
     # Count as correct if the distance is within pck% of the torso size
     mask = visibility_mask * valid_torsos_mask[:, None]
-    correct = (norm_distances < percent).float()
+    correct = (norm_distances < percent).float() * mask
 
     # Calculate pck as the number of correct keypoints over the total number of valid keypoints
     pck = correct.sum() / mask.sum()
