@@ -42,7 +42,8 @@ class FreiHAND(Dataset):
                     self.image_names[i], 
                     # training images are duplicated 4 times with differing backgrounds
                     np.array(self.keypoints_json[i % len(self.keypoints_json)]),
-                    np.array(self.intrinsics_json[i % len(self.intrinsics_json)])
+                    np.array(self.intrinsics_json[i % len(self.intrinsics_json)]),
+                    self.scale_json[i % len(self.scale_json)]
                 )
             )
 
@@ -67,7 +68,7 @@ class FreiHAND(Dataset):
             offset_masks: ndarray of offset masks
         """
 
-        image_name, keypoints, K = self.data[index]
+        image_name, keypoints, K, scale = self.data[index]
         image_path = os.path.join(self.images_dir, image_name)
 
         image = Image.open(image_path)
@@ -92,7 +93,7 @@ class FreiHAND(Dataset):
         # Create heatmaps / offset maps
         heatmaps, offset_masks = self.create_heatmap_and_offset_maps(projected_keypoints)
 
-        return np_image, tensor_keypoints, heatmaps, offset_masks
+        return np_image, tensor_keypoints, heatmaps, offset_masks, K, scale
 
 
     def project_keypoints(self, keypoints, K):
@@ -106,7 +107,7 @@ class FreiHAND(Dataset):
         """
 
         # Project keypoints
-        keypoints_xyZ = (keypoints @ np.transpose(K)) / keypoints[:, 2:3]
+        keypoints_xyZ = (keypoints @ K.T) / keypoints[:, 2:3]
         keypoints_xyZ[:, 2] = keypoints[:, 2]
 
         return keypoints_xyZ
@@ -151,7 +152,7 @@ class FreiHAND(Dataset):
         return normalized_keypoints
     
 
-    def create_heatmap_and_offset_maps(self, keypoints, sigma=1.0, radius_threshold=5):
+    def create_heatmap_and_offset_maps(self, keypoints, sigma=1.0, radius_threshold=3):
         """
         args:
             keypoints: np.array([[x1, y1, Z1], ...])
