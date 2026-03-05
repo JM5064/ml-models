@@ -1,4 +1,4 @@
-import numpy as np
+import torch
 
 
 def mpjpe_3D(preds_kp, labels_kp, K, root_depths, image_size):
@@ -14,10 +14,8 @@ def mpjpe_3D(preds_kp, labels_kp, K, root_depths, image_size):
         mpjpe in millimeters
     """
 
-    preds_kp = preds_kp.detach().cpu().numpy()
-    labels_kp = labels_kp.detach().cpu().numpy()
-    K = K.detach().cpu().numpy()
-    root_depths = root_depths.detach().cpu().numpy()
+    preds_kp = preds_kp.clone()
+    labels_kp = labels_kp.clone()
 
     # Unnormalize x, y
     preds_kp[:, :, :2] *= image_size
@@ -32,7 +30,7 @@ def mpjpe_3D(preds_kp, labels_kp, K, root_depths, image_size):
     labels_XYZ = reproject_xyZ2XYZ(labels_kp, K)
 
     # Calculate MPJPE
-    distances = np.linalg.norm(preds_XYZ - labels_XYZ, axis=-1)
+    distances = torch.norm(preds_XYZ - labels_XYZ, dim=-1)
 
     mpjpe = distances.mean() * 1000 # multiply by 1000 for millimeters
 
@@ -55,7 +53,7 @@ def reproject_xyZ2XYZ(xyz, K):
     X = (x - cx) * Z / fx
     Y = (y - cy) * Z / fy
 
-    XYZ = np.stack([X, Y, Z], axis=-1)
+    XYZ = torch.stack([X, Y, Z], dim=-1)
 
     return XYZ
 
