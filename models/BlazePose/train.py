@@ -5,6 +5,7 @@ import numpy as np
 import time
 
 import torch
+from metrics.pck import pck_2D_visibile
 
 
 def to_device(obj):
@@ -33,52 +34,6 @@ def log_results(file_path, metrics):
 
     file.write('\n')
     file.flush() # Makes file update immediately
-
-
-def calculate_blazepose_pck(preds_kp, labels_kp, percent):
-    """Calculate pck for keypoints. A keypoint is considered correct if it's within percent% of the torso size
-    args:
-        preds_kp: [batch, num_keypoints, 2]
-        labels_kp: [batch, num_keypoints, 2]
-        percent: number, percentage for pck threshold
-
-    returns:
-        pck: % correct keypoints according to threshold    
-    """
-
-    # 2: right hip, 3: left hip, 12: right shoulder, 13: left shoulder
-    left_hip_labels = labels_kp[:, 3, :]
-    right_shoulder_labels = labels_kp[:, 12, :]
-
-    # Make sure that not labeled points (-1) are not included in the correctness calculation (use x for the visibility)
-    visibilities = labels_kp[:, :, 0]
-    visibility_mask = (visibilities != -1).float()
-
-    # Calculate the torso sizes for each label
-    torso_size_labels = torch.norm(left_hip_labels - right_shoulder_labels, dim=1)
-
-    # Mask out images where the torso isn't visible / is too small
-    left_hip_visibilities = (left_hip_labels[:, 0] != -1).float()
-    right_shoulder_visibilities = (right_shoulder_labels[:, 0] != -1).float()
-    valid_torsos_mask = left_hip_visibilities * right_shoulder_visibilities * (torso_size_labels > 0.01).float()
-
-    # Calculate distances between predicted keypoints and labels
-    distances = torch.norm(preds_kp - labels_kp, dim=2)
-    distances = distances * visibility_mask
-
-    # Normalize distances wrt torso size instead of image size
-    # [:, None] reshapes from 1 * N to N * 1
-    norm_distances = distances / torso_size_labels[:, None]
-    norm_distances = norm_distances * valid_torsos_mask[:, None]
-
-    # Count as correct if the distance is within pck% of the torso size
-    mask = visibility_mask * valid_torsos_mask[:, None]
-    correct = (norm_distances < percent).float() * mask
-
-    # Calculate pck as the number of correct keypoints over the total number of valid keypoints
-    pck = correct.sum() / mask.sum()
-
-    return pck
 
 
 def validate(model, val_loader, loss_func):
@@ -119,8 +74,9 @@ def validate(model, val_loader, loss_func):
     labels_kp = labels_concat.view(-1, 16, 3)[:, :, :2]
 
     # Calculate pck metrics
-    correct005 = calculate_blazepose_pck(preds_kp, labels_kp, 0.05)
-    correct02 = calculate_blazepose_pck(preds_kp, labels_kp, 0.2)
+    # For MPII: p1 = 3 (left hip), p2 = 12 (right shoulder) -> torso size
+    correct005 = pck_2D_visibile(preds_kp, labels_kp, 0.05, 3, 12)
+    correct02 = pck_2D_visibile(preds_kp, labels_kp, 0.2, 3, 12)
 
     pck005 = correct005.mean().item()
     pck02 = correct02.mean().item()
