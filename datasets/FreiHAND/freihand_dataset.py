@@ -85,7 +85,7 @@ class FreiHAND(Dataset):
         projected_keypoints = self.project_keypoints(keypoints, K)
 
         # Normalize keypoints
-        normalized_keypoints = self.normalize_keypoints(projected_keypoints)
+        normalized_keypoints, wrist_depth = self.normalize_keypoints(projected_keypoints)
         
         # Convert keypoints to tensor
         tensor_keypoints = torch.tensor(normalized_keypoints, dtype=torch.float32)
@@ -93,7 +93,7 @@ class FreiHAND(Dataset):
         # Create heatmaps / offset maps
         heatmaps, offset_masks = self.create_heatmap_and_offset_maps(projected_keypoints)
 
-        return np_image, tensor_keypoints, heatmaps, offset_masks, K, scale
+        return np_image, tensor_keypoints, heatmaps, offset_masks, K, wrist_depth
 
 
     def project_keypoints(self, keypoints, K):
@@ -120,6 +120,7 @@ class FreiHAND(Dataset):
 
         returns:
             normalized_depths: np.array([z1, z2, ...])
+            wrist_depth: normalization scalar
         """
 
         depths = keypoints[:, 2]
@@ -129,7 +130,7 @@ class FreiHAND(Dataset):
 
         normalized_depths = depths - wrist_depth
 
-        return normalized_depths
+        return normalized_depths, wrist_depth
 
         
     def normalize_keypoints(self, keypoints):
@@ -139,6 +140,7 @@ class FreiHAND(Dataset):
 
         returns:
             normalized_keypoints: [[x1', y1', z1'], ...] normalized keypoints
+            wrist_depth: depth normalization scalar
         """
         
         normalized_keypoints = keypoints.copy()
@@ -147,9 +149,9 @@ class FreiHAND(Dataset):
         normalized_keypoints[:, :2] /= self.image_size
 
         # Normalize z
-        normalized_keypoints[:, 2] = self.normalize_depths(normalized_keypoints)
+        normalized_keypoints[:, 2], wrist_depth = self.normalize_depths(normalized_keypoints)
 
-        return normalized_keypoints
+        return normalized_keypoints, wrist_depth
     
 
     def create_heatmap_and_offset_maps(self, keypoints, sigma=1.0, radius_threshold=3):
