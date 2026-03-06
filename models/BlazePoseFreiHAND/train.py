@@ -42,6 +42,7 @@ def validate(model, val_loader, loss_func, image_size):
     all_preds = []
     all_labels = []
     running_loss = 0.0
+    mpjpe = 0.0
 
     with torch.no_grad():
         for inputs, keypoints, heatmaps, offset_masks, Ks, wrist_depths in tqdm(val_loader):
@@ -49,6 +50,8 @@ def validate(model, val_loader, loss_func, image_size):
             keypoints = to_device(keypoints)
             heatmaps = to_device(heatmaps)
             offset_masks = to_device(offset_masks)
+            Ks = to_device(Ks)
+            wrist_depths = to_device(wrist_depths)
 
             # Get predictions for regression and heatmap paths
             regression_outputs, heatmap_outputs = model(inputs)
@@ -59,6 +62,9 @@ def validate(model, val_loader, loss_func, image_size):
 
             all_preds.extend(regression_outputs.cpu().numpy().squeeze())
             all_labels.extend(keypoints.cpu().numpy())
+
+            # Calculate mpjpe on batch
+            mpjpe += mpjpe_3D(regression_outputs, keypoints, Ks, wrist_depths, image_size) / keypoints.shape[0]
 
     average_val_loss = running_loss / len(val_loader)
     
@@ -76,8 +82,6 @@ def validate(model, val_loader, loss_func, image_size):
     preds_kp = preds_concat.view(-1, 21, 3)
     labels_kp = labels_concat.view(-1, 21, 3)
 
-    print("mpjpe:", mpjpe_3D(preds_kp, labels_kp, Ks, wrist_depths, image_size))
-
     # Calculate pck metrics
     # For FreiHAND: p1 = 9 (middle finger bottom), p2 = 12 (middle finger top) (not conventional)
     correct005 = pck_2D(preds_kp[..., :2], labels_kp[..., :2], 0.05, 9, 12)
@@ -90,6 +94,7 @@ def validate(model, val_loader, loss_func, image_size):
         "mae": mae,
         "pck@0.05": pck005,
         "pck@0.2": pck02,
+        "mpjpe": mpjpe,
         "average_val_loss": average_val_loss,
     }
 
@@ -155,6 +160,7 @@ def train(
         print(f'Epoch {i+1} Results:')
         print(f'Train Loss: {average_train_loss}\tValidation Loss: {metrics["average_val_loss"]}')
         print(f'MAE: {metrics["mae"]}\tPCK@0.05: {metrics["pck@0.05"]}\tPCK@0.2: {metrics["pck@0.2"]}')
+        print(f'MPJPE: {metrics["mpjpe"]}')
 
         log_results(logfile_path, metrics)
 
