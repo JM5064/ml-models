@@ -28,15 +28,8 @@ class HeatmapLoss(nn.Module):
         # Calculate squared errors between each pixel
         squared_errors = (heatmap_preds - heatmap_labels) ** 2
         
-        # Sum squared errors
-        loss = squared_errors.sum()
-
-        # print(heatmap_preds.mean(), "predicted mean")
-        # print(heatmap_preds.std(), "predicted std")
-        # print(heatmap_labels.mean(), "labels mean")
-        # print(heatmap_labels.std(), "labels std")
-        # print(heatmap_labels.shape)
-        # print(loss, "loss")
+        # Average squared errors
+        loss = squared_errors.mean()
 
         return loss
 

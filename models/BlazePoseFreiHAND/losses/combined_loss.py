@@ -10,7 +10,7 @@ from .offset_loss import OffsetLoss
 
 class CombinedLoss(nn.Module):
 
-    def __init__(self, a=1, b=1, c=2):
+    def __init__(self, a=5, b=10, c=0.1):
         super().__init__()
 
         self.regression_loss_func = RegressionLoss()

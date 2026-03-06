@@ -6,7 +6,7 @@ import torch.nn as nn
 
 class RegressionLoss(nn.Module):
 
-    def __init__(self, alpha=0.5):
+    def __init__(self, alpha=1.0):
         super().__init__()
 
         self.alpha = alpha
@@ -17,29 +17,17 @@ class RegressionLoss(nn.Module):
             print("Uh oh, predictions and labels have differing shapes", preds.shape, labels.shape)
 
         # preds and labels have shape [batch_size, num_keypoints, 3]
-        # ... -> keep batch_size, num_keypoints the same, take first two points of the last dimension
-        preds_xy = preds[..., :2]
-        labels_xy = labels[..., :2]
 
-        preds_z = preds[..., 2]
-        labels_z = labels[..., 2]
+        # Calculate MSE between keypoints
+        squared_errors = (preds - labels) ** 2
+        mean_squared_errors = torch.mean(squared_errors, dim=(0, 1))
 
-
-        # Calculate squared errors between keypoints
-        squared_errors = (preds_xy - labels_xy) ** 2
-        xy_loss = squared_errors.sum()
-
-
-        # Calculate squared errors between z values
-        squared_errors = (preds_z - labels_z) ** 2
-        
-        z_loss = squared_errors.sum()
+        # Split MSEs into xy and z
+        xy_loss = mean_squared_errors[0] + mean_squared_errors[1]
+        z_loss = mean_squared_errors[2]
 
         # Calculate total loss
         total_loss = xy_loss + z_loss * self.alpha
-
-        # print("Coord loss:", coord_loss)
-        # print("Visibility loss:", visibility_loss * self.alpha)
 
         return total_loss
 
@@ -55,6 +43,14 @@ if __name__ == "__main__":
         [[10, 20, 0], [29, 41, -1], [49, 59, 0], [70, 79, 0], [88, 102, 0]],
         [[12, 22, 1], [29, 39, 1], [52, 62, -1], [70, 82, 0], [89, 99, 0]]
     ])
+    outputs = torch.tensor([
+        [[1,1,1], [2,2,2]],
+        [[3,3,3], [4,4,4]]
+    ], dtype=torch.float32)
+    labels = torch.tensor([
+        [[2,2,2], [2,2,2]],
+        [[3,3,3], [4,4,4]]
+    ], dtype=torch.float32)
 
     criterion = RegressionLoss()
 
