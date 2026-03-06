@@ -41,8 +41,11 @@ def validate(model, val_loader, loss_func, image_size):
     model.eval()
     all_preds = []
     all_labels = []
-    running_loss = 0.0
     mpjpe = 0.0
+    total_combined_loss = 0.0
+    total_regression_loss = 0.0
+    total_heatmap_loss = 0.0
+    total_offset_loss = 0.0
 
     with torch.no_grad():
         for inputs, keypoints, heatmaps, offset_masks, Ks, wrist_depths in tqdm(val_loader):
@@ -58,7 +61,10 @@ def validate(model, val_loader, loss_func, image_size):
             loss, regression_loss, heatmap_loss, offset_loss = loss_func(
                 regression_outputs, keypoints, heatmap_outputs, heatmaps, offset_masks
             )
-            running_loss += loss.item()
+            total_combined_loss += loss.item()
+            total_regression_loss += regression_loss.item()
+            total_heatmap_loss += heatmap_loss.item()
+            total_offset_loss += offset_loss.item()
 
             all_preds.extend(regression_outputs.cpu().numpy().squeeze())
             all_labels.extend(keypoints.cpu().numpy())
@@ -66,8 +72,10 @@ def validate(model, val_loader, loss_func, image_size):
             # Calculate mpjpe on batch
             mpjpe += mpjpe_3D(regression_outputs, keypoints, Ks, wrist_depths, image_size) / keypoints.shape[0]
 
-    average_val_loss = running_loss / len(val_loader)
-    
+    average_val_loss = total_combined_loss / len(val_loader)
+    average_val_regression_loss = total_regression_loss / len(val_loader)
+    average_val_heatmap_loss = total_heatmap_loss / len(val_loader)
+    average_val_offset_loss = total_offset_loss / len(val_loader)
     
     # Flatten
     all_preds_flattened = np.concatenate(all_preds, axis=0)
@@ -96,6 +104,9 @@ def validate(model, val_loader, loss_func, image_size):
         "pck@0.2": pck02,
         "mpjpe": mpjpe,
         "average_val_loss": average_val_loss,
+        "average_val_regression_loss": average_val_regression_loss,
+        "average_val_heatmap_loss": average_val_heatmap_loss,
+        "average_val_offset_loss": average_val_offset_loss
     }
 
     return metrics
@@ -130,8 +141,12 @@ def train(
             for param in model.bb1.parameters():
                 param.requires_grad = True
 
+        total_combined_loss = 0.0
+        total_regression_loss = 0.0
+        total_heatmap_loss = 0.0
+        total_offset_loss = 0.0
+
         model.train()
-        running_loss = 0.0
         for inputs, keypoints, heatmaps, offset_masks, Ks, wrist_depths in tqdm(train_loader):
             inputs = to_device(inputs)
             keypoints = to_device(keypoints)
@@ -149,16 +164,29 @@ def train(
             loss.backward()
             optimizer.step()
 
-            running_loss += loss.item()
+            total_combined_loss += loss.item()
+            total_regression_loss += regression_loss.item()
+            total_heatmap_loss += heatmap_loss.item()
+            total_offset_loss += offset_loss.item()
 
         # print and log metrics
-        average_train_loss = running_loss / len(train_loader)
+        average_train_loss = total_combined_loss / len(train_loader)
+        average_train_regression_loss = total_regression_loss / len(train_loader)
+        average_train_heatmap_loss = total_heatmap_loss / len(train_loader)
+        average_train_offset_loss = total_offset_loss / len(train_loader)
+
         metrics = validate(model, val_loader, loss_func, image_size)
         metrics["average_train_loss"] = average_train_loss
+        metrics["average_train_regression_loss"] = average_train_regression_loss
+        metrics["average_train_heatmap_loss"] = average_train_heatmap_loss
+        metrics["average_train_offset_loss"] = average_train_offset_loss
 
 
         print(f'Epoch {i+1} Results:')
-        print(f'Train Loss: {average_train_loss}\tValidation Loss: {metrics["average_val_loss"]}')
+        print(f'Train Loss: {average_train_loss} | Regression: {average_train_regression_loss}'
+             f' | Heatmap: {average_train_heatmap_loss} | Offset: {average_train_offset_loss}')
+        print(f'Val Loss:   {metrics["average_val_loss"]} | Regression: {metrics["average_val_regression_loss"]}'
+             f' | Heatmap: {metrics["average_val_heatmap_loss"]} | Offset: {metrics["average_val_offset_loss"]}')
         print(f'MAE: {metrics["mae"]}\tPCK@0.05: {metrics["pck@0.05"]}\tPCK@0.2: {metrics["pck@0.2"]}')
         print(f'MPJPE: {metrics["mpjpe"]}')
 
@@ -189,6 +217,7 @@ def train(
     metrics = validate(model, test_loader, loss_func, image_size)
     print("Testing Results")
     print(f'MAE: {metrics["mae"]}\tPCK@0.05: {metrics["pck@0.05"]}\tPCK@0.2: {metrics["pck@0.2"]}')
+    print(f'MPJPE: {metrics["mpjpe"]}')
     print(f'Test Loss: {metrics["average_val_loss"]}')
 
     test_logfile_path = runs_dir + "/" + time + "/test_metrics.csv"
