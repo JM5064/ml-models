@@ -33,8 +33,8 @@ def pck_2D(preds_kp, labels_kp, percent, norm_p1, norm_p2):
     # Count as correct if the distance is within pck% of the normalization size
     correct = (norm_distances < percent).float()
 
-    # Calculate pck as the number of correct keypoints over the total number of keypoints
-    pck = correct.sum() / preds_kp.numel()
+    # Calculate pck as the number of correct keypoints over the total number of keypoints (aka mean)
+    pck = correct.mean()
 
     return pck
 
