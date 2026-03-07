@@ -33,7 +33,7 @@ if __name__ == "__main__":
     train_transform = v2.Compose([
         # RandomHorizontalFlip(0.5, seed=5064),
         # RandomAffine(degrees=25, translate=None, scale=(0.75, 1.25), shear=0.1, seed=5064),
-        # v2.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.05),
+        v2.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.05),
         # RandomOcclusion(0.1, 0.3, 0.5, seed=5064),
         v2.ToTensor(),
         v2.Normalize(mean=[0.472, 0.450, 0.413],
@@ -46,6 +46,7 @@ if __name__ == "__main__":
                             std=[0.277, 0.272, 0.273]),
     ])
 
+    # Full dataset
     # train_images_dir = 'datasets/FreiHAND/FreiHAND/FreiHAND_pub_v2/training/rgb'
     # val_images_dir = 'datasets/FreiHAND/FreiHAND/FreiHAND_pub_v2_eval/evaluation/rgb'
 
@@ -58,16 +59,28 @@ if __name__ == "__main__":
     # val_scale_json = 'datasets/FreiHAND/FreiHAND/FreiHAND_pub_v2_eval/evaluation_scale.json'
 
     # 64 images for testing
-    train_images_dir = 'datasets/FreiHAND/FreiHAND/FreiHAND_pub_v2/FreiHAND64/rgb'
-    val_images_dir = train_images_dir
+    # train_images_dir = 'datasets/FreiHAND/FreiHAND/FreiHAND_pub_v2/FreiHAND64/rgb'
+    # val_images_dir = train_images_dir
 
-    train_kpts_json = 'datasets/FreiHAND/FreiHAND/FreiHAND_pub_v2/FreiHAND64/training_xyz.json'
-    train_intrinsics_json = 'datasets/FreiHAND/FreiHAND/FreiHAND_pub_v2/FreiHAND64/training_K.json'
-    train_scale_json = 'datasets/FreiHAND/FreiHAND/FreiHAND_pub_v2/FreiHAND64/training_scale.json'
+    # train_kpts_json = 'datasets/FreiHAND/FreiHAND/FreiHAND_pub_v2/FreiHAND64/training_xyz.json'
+    # train_intrinsics_json = 'datasets/FreiHAND/FreiHAND/FreiHAND_pub_v2/FreiHAND64/training_K.json'
+    # train_scale_json = 'datasets/FreiHAND/FreiHAND/FreiHAND_pub_v2/FreiHAND64/training_scale.json'
 
-    val_kpts_json = train_kpts_json
-    val_intrinsics_json = train_intrinsics_json
-    val_scale_json = train_scale_json
+    # val_kpts_json = train_kpts_json
+    # val_intrinsics_json = train_intrinsics_json
+    # val_scale_json = train_scale_json
+
+    # Train set as val set for testing
+    val_images_dir = 'datasets/FreiHAND/FreiHAND/FreiHAND_pub_v2_eval/evaluation/rgb'
+    train_images_dir = val_images_dir
+
+    val_kpts_json = 'datasets/FreiHAND/FreiHAND/FreiHAND_pub_v2_eval/evaluation_xyz.json'
+    val_intrinsics_json = 'datasets/FreiHAND/FreiHAND/FreiHAND_pub_v2_eval/evaluation_K.json'
+    val_scale_json = 'datasets/FreiHAND/FreiHAND/FreiHAND_pub_v2_eval/evaluation_scale.json'
+
+    train_kpts_json = val_kpts_json
+    train_intrinsics_json = val_intrinsics_json
+    train_scale_json = val_scale_json
 
 
     train_dataset = FreiHAND(
@@ -86,7 +99,7 @@ if __name__ == "__main__":
 
     test_dataset = val_dataset
 
-    batch_size = 64
+    batch_size = 32
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=1)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=1)
@@ -131,12 +144,12 @@ if __name__ == "__main__":
     total_epochs = 50
     scheduler = convnext_scheduler(optimizer, warmup_epochs, total_epochs)
 
-    model, optimizer, scheduler, epoch = load_checkpoint("models/BlazePoseFreiHAND/runs/test/last.pt", model, optimizer, scheduler)
+    # model, optimizer, scheduler, epoch = load_checkpoint("models/BlazePoseFreiHAND/runs/test/last.pt", model, optimizer, scheduler)
 
     train(
         model, 
         total_epochs, 
-        start_epoch=epoch,
+        start_epoch=0,
         train_loader=train_loader, 
         val_loader=val_loader, 
         test_loader=test_loader, 

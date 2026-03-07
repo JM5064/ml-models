@@ -41,8 +41,8 @@ class FreiHAND(Dataset):
                 (
                     self.image_names[i], 
                     # training images are duplicated 4 times with differing backgrounds
-                    np.array(self.keypoints_json[i % len(self.keypoints_json)]),
-                    np.array(self.intrinsics_json[i % len(self.intrinsics_json)]),
+                    np.array(self.keypoints_json[i % len(self.keypoints_json)], dtype=np.float32),
+                    np.array(self.intrinsics_json[i % len(self.intrinsics_json)], dtype=np.float32),
                     self.scale_json[i % len(self.scale_json)]
                 )
             )

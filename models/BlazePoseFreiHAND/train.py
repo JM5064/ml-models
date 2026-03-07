@@ -41,11 +41,11 @@ def validate(model, val_loader, loss_func, image_size):
     model.eval()
     all_preds = []
     all_labels = []
-    mpjpe = 0.0
     total_combined_loss = 0.0
     total_regression_loss = 0.0
     total_heatmap_loss = 0.0
     total_offset_loss = 0.0
+    mpjpe = 0.0
 
     with torch.no_grad():
         for inputs, keypoints, heatmaps, offset_masks, Ks, wrist_depths in tqdm(val_loader):
@@ -70,7 +70,13 @@ def validate(model, val_loader, loss_func, image_size):
             all_labels.extend(keypoints.cpu().numpy())
 
             # Calculate mpjpe on batch
-            mpjpe += mpjpe_3D(regression_outputs, keypoints, Ks, wrist_depths, image_size) / keypoints.shape[0]
+            batch_mpjpe = mpjpe_3D(regression_outputs, keypoints, Ks, wrist_depths, image_size)
+        
+            # Multiply by batch size to get total pjpe for the batch
+            mpjpe += batch_mpjpe.item() * keypoints.shape[0]
+
+    # Divide by # of images for mpjpe
+    mpjpe /= len(all_preds)
 
     average_val_loss = total_combined_loss / len(val_loader)
     average_val_regression_loss = total_regression_loss / len(val_loader)

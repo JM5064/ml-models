@@ -72,7 +72,18 @@ if __name__ == "__main__":
     dl = DataLoader(freihand, batch_size=1, shuffle=False)
 
     for np_image, tensor_keypoints, heatmaps, offset_masks, K, wrist_depth in dl:
-        mpjpe_3D(tensor_keypoints, tensor_keypoints.clone(), K, wrist_depth, 224)
+        preds_kp = tensor_keypoints.clone()
+        labels_kp = tensor_keypoints.clone()
+
+        preds_kp[:, 0, 0] = 0
+
+        print("preds_kp", preds_kp)
+        print("labels_kp", labels_kp)
+        print("K", K)
+        print("wrist_depth", wrist_depth)
+
+        mpjpe = mpjpe_3D(preds_kp, labels_kp, K, wrist_depth, 224)
+        print("mpjpe:", mpjpe)
 
         break
 
