@@ -6,6 +6,7 @@ import json
 import os
 from torch.utils.data import DataLoader
 from torchvision.transforms import v2
+from datasets.MPII.random_affine import RandomAffine
 
 
 def visualize(dataset):
@@ -36,15 +37,19 @@ def visualize(dataset):
     cv2.destroyAllWindows()
 
 
-def add_keypoints(image, keypoints):
+def add_keypoints(image, keypoints, joint_names=None):
     h, w, _ = image.shape
         
     # Unnormalize keypoints
     keypoints[:, 0] *= w
     keypoints[:, 1] *= h
 
-    for keypoint in keypoints:
+    for i in range(len(keypoints)):
+        keypoint = keypoints[i]
         cv2.circle(image, (int(keypoint[0]), int(keypoint[1])), 1, (0, 0, 255), -1)
+
+        if joint_names:
+            cv2.putText(image, joint_names[int(i)], (int(keypoint[0]), int(keypoint[1])), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 0, 255), 1)
 
     return image
     
@@ -87,7 +92,8 @@ def add_heatmap_offsets(heatmaps):
 
 
 def main():
-    from freihand_dataset import FreiHAND
+    # from freihand_dataset import FreiHAND
+    from datasets.FreiHAND.freihand_dataset import FreiHAND
 
     images_dir = 'datasets/FreiHAND/FreiHAND/FreiHAND_pub_v2_eval/evaluation/rgb'
     keypoints_path = 'datasets/FreiHAND/FreiHAND/FreiHAND_pub_v2_eval/evaluation_xyz.json'
@@ -97,7 +103,7 @@ def main():
 
     transform = v2.Compose([
         # RandomHorizontalFlip(0.5, seed=5064),
-        # RandomAffine(degrees=25, translate=None, scale=(0.75, 1.25), shear=0.1, seed=5064),
+        RandomAffine(degrees=25, translate=None, scale=None, shear=None, seed=5064),
         # v2.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.05),
         # RandomOcclusion(0.1, 0.3, 0.5, seed=5064),
         v2.ToTensor(),
