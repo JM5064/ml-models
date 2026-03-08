@@ -68,7 +68,7 @@ class MPIIDataset(Dataset):
         tensor_keypoints = torch.tensor(normalized_keypoints, dtype=torch.float32)
 
         # Create heatmaps / offset maps
-        heatmaps, offset_masks = self.create_heatmap_and_offset_maps(letterbox_keypoints)
+        heatmaps, offset_masks = self.create_heatmap_and_offset_maps(transformed_keypoints)
 
         return np_image, tensor_keypoints, heatmaps, offset_masks
 
@@ -175,86 +175,53 @@ class MPIIDataset(Dataset):
 
         return normalized_keypoints
 
-    
-    def create_heatmap_channel(self, x, y, sigma=3):
-        rows = np.arange(self.image_size, dtype=np.float32)[:, None] # Column vector (height, 1)
-        cols = np.arange(self.image_size, dtype=np.float32)[None, :] # Row vector (1, width)
 
-        # Get squared distances from each point i, j to x, y
-        dist_sq = (cols - x) ** 2 + (rows - y) ** 2 
-
-        # Compute Gaussians
-        channel = np.exp(-dist_sq / (2 * sigma ** 2))
-
-        channel = cv2.resize(channel, (self.heatmap_size, self.heatmap_size), interpolation=cv2.INTER_LINEAR)
-    
-        return channel
-    
-
-    def create_offset_channel(self, x, y, heatmap_channel, threshold=1e-3):
-        """Creates x and y offset channels for a given radius around the keypoint
+    def create_heatmap_and_offset_maps(self, keypoints, sigma=1.0, radius_threshold=5):
+        """
         args:
-            x, y: the x, y positions of the keypoint in image space (not normalized)
-            threshold: a heatmap value must pass this threshold for its offset to be calcualted
+            keypoints: np.array([[x1, y1, Z1], ...])
+            sigma: standard deviation for Gaussian heatmap
+            radius_threshold: Max distance for valid offsets
 
         returns:
-            x_offset_map: offset map in the x direction
-            y_offset_map: offset map in the y direction
-            mask: a mask signifying where the relevant offsets are
+            heatmap_and_offset_maps: np.array of concatenated heatmap and offset maps
+            offset_masks: np.array offset mask for masking offset losses
         """
+        keypoints = np.array(keypoints)
+        num_keypoints = len(keypoints)
 
-        # Return None if keypoint not present
-        if x == -1:
-            return None, None, None
-        
-        x_heatmap_true_center = (x / self.image_size) * self.heatmap_size
-        y_heatmap_true_center = (y / self.image_size) * self.heatmap_size
+        # Create coordinate grid
+        x_grid = np.arange(self.heatmap_size)
+        y_grid = np.arange(self.heatmap_size)
+        xx, yy = np.meshgrid(x_grid, y_grid)
 
-        rows = np.arange(self.heatmap_size, dtype=np.float32)[:, None] # Column vector (height, 1)
-        cols = np.arange(self.heatmap_size, dtype=np.float32)[None, :] # Row vector (1, width)
+        # Scale keypoints down to heatmap size
+        scale = self.heatmap_size / self.image_size     
+        scaled_keypoints = keypoints * scale
 
-        x_offset_map = (x_heatmap_true_center - cols) * (heatmap_channel > threshold)
-        y_offset_map = (y_heatmap_true_center - rows) * (heatmap_channel > threshold)
+        # Reshape keypoints for broadcasting
+        xs = scaled_keypoints[:, 0].reshape(num_keypoints, 1, 1)
+        ys = scaled_keypoints[:, 1].reshape(num_keypoints, 1, 1)
 
-        # Normalize offsets
-        x_offset_map /= self.heatmap_size
-        y_offset_map /= self.heatmap_size
+        # Calculate Offsets
+        x_offsets = xs - xx
+        y_offsets = ys - yy
 
-        mask = (heatmap_channel > threshold).astype(np.float32)
+        # Calculate squared distances
+        dist_sq = x_offsets ** 2 + y_offsets ** 2
 
-        return x_offset_map, y_offset_map, mask
+        # Create heatmaps
+        heatmaps = np.exp(-dist_sq / (2 * sigma ** 2))
 
+        # Generate offset masks
+        offset_masks = (dist_sq <= radius_threshold ** 2).astype(np.float32)
 
-    def create_heatmap_and_offset_maps(self, letterbox_keypoints):        
-        heatmaps = []
-        x_offset_maps = []
-        y_offset_maps = []
-        offset_masks = []
-
-        for keypoint in letterbox_keypoints:
-            if keypoint[0] == -1:
-                # Append blank heatmaps and offset maps if point not visible
-                heatmaps.append(np.zeros((self.heatmap_size, self.heatmap_size), dtype=np.float32))
-                x_offset_maps.append(np.zeros((self.heatmap_size, self.heatmap_size), dtype=np.float32))
-                y_offset_maps.append(np.zeros((self.heatmap_size, self.heatmap_size), dtype=np.float32))
-                offset_masks.append(np.zeros((self.heatmap_size, self.heatmap_size), dtype=np.float32))
-
-                continue
-
-            # Calculate heatmap and offset map for each keypoint
-            heatmap_channel = self.create_heatmap_channel(keypoint[0], keypoint[1])
-            heatmaps.append(heatmap_channel)
-
-            x_offset_channel, y_offset_channel, offset_mask = self.create_offset_channel(keypoint[0], keypoint[1], heatmap_channel)
-
-            x_offset_maps.append(x_offset_channel)
-            y_offset_maps.append(y_offset_channel)
-            offset_masks.append(offset_mask)
+        # Apply offset masks
+        x_offset_maps = x_offsets * offset_masks
+        y_offset_maps = y_offsets * offset_masks
 
         # Combine heatmaps and offset maps
-        heatmaps.extend(x_offset_maps)
-        heatmaps.extend(y_offset_maps)
+        heatmap_and_offset_maps = np.concatenate([heatmaps, x_offset_maps, y_offset_maps], axis=0).astype(np.float32)
 
-        return np.array(heatmaps), np.array(offset_masks)
-
+        return heatmap_and_offset_maps, offset_masks
 

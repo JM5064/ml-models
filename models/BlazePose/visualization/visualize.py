@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 
-file_path = 'models/BlazePose/runs/2025-09-06 22:15:01.591839/metrics.csv'
+file_path = 'models/BlazePose/runs/100_epochs/metrics.csv'
 column_order = ['mae', 'pck@0.05', 'pck@0.2', 'average_val_loss', 'average_train_loss']
 
 
@@ -32,8 +32,7 @@ def create_plot(metrics, title, position, metric_names=None):
         metric_names = [title]
 
     for i in range(len(metrics)):
-        print(colors[i], metrics[i])
-        plt.plot(epochs, metrics[i], label=str(metric_names[i]), color=colors[i])
+        plt.plot(epochs, metrics[i], label=metric_names[i], color=colors[i])
 
     plt.xlabel('Epoch')
     plt.ylabel(title)

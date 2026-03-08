@@ -122,15 +122,15 @@ def visualize_heatmaps(dataset, num_samples=100):
 
 
 train_transform = v2.Compose([
-        RandomHorizontalFlip(0.5, seed=5064),
+        # RandomHorizontalFlip(0.5, seed=5064),
         RandomAffine(degrees=25, translate=(0.15, 0.15), scale=(0.75, 1.25), shear=0.1, seed=5064),
-        v2.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.05),
-        RandomOcclusion(0.1, 0.3, 0.5, seed=5064),
+        # v2.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.05),
+        # RandomOcclusion(0.1, 0.3, 0.5, seed=5064),
         v2.ToTensor(),
         # v2.Normalize(mean=[0.472, 0.450, 0.413],
         #                     std=[0.277, 0.272, 0.273]),
     ])
 
 mpii_dataset = MPIIDataset('datasets/MPII/mpii/images', 'datasets/MPII/mpii/annotations.json', transform=train_transform)
-visualize_dataset(mpii_dataset)
-# visualize_heatmaps(mpii_dataset)
+# visualize_dataset(mpii_dataset)
+visualize_heatmaps(mpii_dataset)
