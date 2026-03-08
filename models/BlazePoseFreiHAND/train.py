@@ -7,36 +7,7 @@ import time
 import torch
 from metrics.mpjpe import mpjpe_3D
 from metrics.pck import pck_2D, pck_3D
-
-
-def to_device(obj):
-    if torch.cuda.is_available():
-        obj = obj.to("cuda")
-    elif torch.backends.mps.is_available():
-        obj = obj.to("mps")
-
-    return obj
-
-
-def log_results(file_path, metrics):
-    # Open file
-    file = open(file_path, "a")
-
-    # Create header if file is blank
-    if os.path.getsize(file_path) == 0:
-        for metric in metrics:
-            file.write(f'{metric},')
-        
-        file.write('\n')
-
-    # Log metrics
-    for metric in metrics:
-            file.write(f'{metrics[metric]},')
-
-    file.write('\n')
-    # Makes file update immediately
-    file.flush()
-    os.fsync(file.fileno())
+from models.utils import to_device, log_results
 
 
 def validate(model, val_loader, loss_func, image_size):
@@ -49,8 +20,8 @@ def validate(model, val_loader, loss_func, image_size):
     total_offset_loss = 0.0
 
     mpjpe = 0.0
-    pck20 = 0.0
-    pck40 = 0.0
+    pck3D_thresholds = [20, 40]
+    pck3Ds = np.zeros(len(pck3D_thresholds))
 
     with torch.no_grad():
         for inputs, keypoints, heatmaps, offset_masks, Ks, wrist_depths in tqdm(val_loader):
@@ -79,17 +50,15 @@ def validate(model, val_loader, loss_func, image_size):
             # Multiply by batch size to get total pjpe for the batch
             mpjpe += batch_mpjpe.item() * keypoints.shape[0]
 
-            # Calculate 3D pck on batch
-            batch_pck20 = pck_3D(regression_outputs, keypoints, 20, Ks, wrist_depths, image_size)
-            pck20 += batch_pck20.item() * keypoints.shape[0]
-            batch_pck40 = pck_3D(regression_outputs, keypoints, 40, Ks, wrist_depths, image_size)
-            pck40 += batch_pck40.item() * keypoints.shape[0]
+            # Calculate 3D pcks on batch
+            for i in range(len(pck3D_thresholds)):
+                batch_pck = pck_3D(regression_outputs, keypoints, pck3D_thresholds[i], Ks, wrist_depths, image_size)
+                pck3Ds[i] += batch_pck.item() * keypoints.shape[0]
 
 
     # Divide by # of images
     mpjpe /= len(all_preds)
-    pck20 /= len(all_preds)
-    pck40 /= len(all_preds)
+    pck3Ds /= len(all_preds)
 
     average_val_loss = total_combined_loss / len(val_loader)
     average_val_regression_loss = total_regression_loss / len(val_loader)
@@ -121,8 +90,8 @@ def validate(model, val_loader, loss_func, image_size):
         "mae": mae,
         "pck@0.05": pck005,
         "pck@0.2": pck02,
-        "pck@20mm": pck20,
-        "pck@40mm": pck40,
+        "pck@20mm": pck3Ds[0],
+        "pck@40mm": pck3Ds[1],
         "mpjpe": mpjpe,
         "average_val_loss": average_val_loss,
         "average_val_regression_loss": average_val_regression_loss,
@@ -245,14 +214,4 @@ def train(
 
     test_logfile_path = runs_dir + "/" + time + "/test_metrics.csv"
     log_results(test_logfile_path, metrics)
-
-
-def load_checkpoint(checkpoint_path, model, optimizer, scheduler):
-    checkpoint = torch.load(checkpoint_path)
-
-    model.load_state_dict(checkpoint['state_dict'])
-    optimizer.load_state_dict(checkpoint['optimizer'])
-    scheduler.load_state_dict(checkpoint['scheduler'])
-
-    return model, optimizer, scheduler, checkpoint['epoch']
 

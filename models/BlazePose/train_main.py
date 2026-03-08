@@ -17,6 +17,7 @@ from torchvision.transforms import v2
 
 from .blazepose import BlazePose
 from .train import train, to_device
+from models.utils import load_checkpoint
 from datasets.MPII.mpii_dataset import MPIIDataset
 from datasets.MPII.random_affine import RandomAffine
 from datasets.MPII.random_horizontal_flip import RandomHorizontalFlip
@@ -48,8 +49,8 @@ if __name__ == "__main__":
 
     images_dir = 'datasets/MPII/mpii/images'
 
-    train_json = 'datasets/MPII/mpii/train.json'
-    val_json = 'datasets/MPII/mpii/val.json'
+    train_json = 'datasets/MPII/mpii/mini_train.json'
+    val_json = 'datasets/MPII/mpii/mini_val.json'
     test_json = 'datasets/MPII/mpii/test.json'
 
     train_dataset = MPIIDataset(images_dir, train_json, transform=train_transform)
@@ -101,9 +102,12 @@ if __name__ == "__main__":
     total_epochs = 100
     scheduler = convnext_scheduler(optimizer, warmup_epochs, total_epochs)
 
+    model, optimizer, scheduler, epoch = load_checkpoint("models/BlazePose/runs/54_epochs/last.pt", model, optimizer, scheduler)
+
     train(
         model, 
         total_epochs, 
+        start_epoch=epoch,
         train_loader=train_loader, 
         val_loader=val_loader, 
         test_loader=test_loader, 

@@ -16,21 +16,7 @@ from torchvision import datasets
 from torchvision.transforms import v2
 
 from convnext import ConvNeXt
-
-
-def to_device(obj):
-    if torch.cuda.is_available():
-        obj = obj.to("cuda")
-
-    return obj
-
-
-def log_results(file, metrics):
-    for metric in metrics:
-        file.write(f'{metric}: {metrics[metric]}\t')
-
-    file.write('\n')
-    file.flush() # Makes file update immediately
+from models.utils import to_device, log_results
 
 
 def compute_class_weights(train_dir_path):
@@ -179,16 +165,6 @@ def train(
 
     test_logfile = open(runs_dir + "/" + time + "/test_metrics.txt", "a")
     log_results(test_logfile, metrics)
-
-
-def load_checkpoint(checkpoint_path, model, optimizer, scheduler):
-    checkpoint = torch.load(checkpoint_path)
-
-    model.load_state_dict(checkpoint['state_dict'])
-    optimizer.load_state_dict(checkpoint['optimizer'])
-    scheduler.load_state_dict(checkpoint['scheduler'])
-
-    return model, optimizer, scheduler, checkpoint['epoch']
 
 
 if __name__ == "__main__":

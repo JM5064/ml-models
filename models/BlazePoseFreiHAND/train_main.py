@@ -16,7 +16,8 @@ from torchvision import datasets
 from torchvision.transforms import v2
 
 from .blazepose import BlazePose
-from .train import train, to_device, load_checkpoint
+from .train import train, to_device
+from models.utils import load_checkpoint
 from datasets.FreiHAND.freihand_dataset import FreiHAND
 # from datasets.MPII.random_affine import RandomAffine
 # from datasets.MPII.random_horizontal_flip import RandomHorizontalFlip
