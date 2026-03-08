@@ -12,17 +12,17 @@ class BlazePose(nn.Module):
 
         self.num_keypoints = num_keypoints
 
-        self.bb1 = BlazeBlock(3, 16)        # 256 x 256 x 3 -> 128 x 128 x 16
-        self.bb2 = BlazeBlock(16, 32)       # 128 x 128 x 16 -> 64 x 64 x 32
-        self.bb3 = BlazeBlock(32, 64)       # 64 x 64 x 32 -> 32 x 32 x 64
-        self.bb4 = BlazeBlock(64, 128)      # 32 x 32 x 64 -> 16 x 16 x 128
-        self.bb5 = BlazeBlock(128, 192)     # 16 x 16 x 128 -> 8 x 8 x 192
+        self.bb1 = BlazeBlock(3, 16)        # 224 x 224 x 3 -> 112 x 112 x 16
+        self.bb2 = BlazeBlock(16, 32)       # 112 x 112 x 16 -> 56 x 56 x 32
+        self.bb3 = BlazeBlock(32, 64)       # 56 x 56 x 32 -> 28 x 28 x 64
+        self.bb4 = BlazeBlock(64, 128)      # 28 x 28 x 64 -> 14 x 14 x 128
+        self.bb5 = BlazeBlock(128, 192)     # 14 x 14 x 128 -> 7 x 7 x 192
 
-        self.hb1 = HeatmapBlock(192, 32)    # 8 x 8 x 192 -> 8 x 8 x 32
-        self.hb2 = HeatmapBlock(128, 32)    # 16 x 16 x 128 + (8 x 8 x 32)+ -> 16 x 16 x 32
-        self.hb3 = HeatmapBlock(64, 32)    # 32 x 32 x 64 + (16 x 16 x 32)+ -> 32 x 32 x 32
-        # TODO: this one doesnt actually need a conv since it's 32 -> 32
-        self.hb4 = HeatmapBlock(32, 32)     # 64 x 64 x 32 + (32 x 32 x 32)+ -> 64 x 64 x 32
+        self.hb1 = HeatmapBlock(192, 32)    # 7 x 7 x 192 -> 7 x 7 x 32
+        self.hb2 = HeatmapBlock(128, 32)    # 14 x 14 x 128 + (7 x 7 x 32)+ -> 14 x 14 x 32
+        self.hb3 = HeatmapBlock(64, 32)    # 28 x 28 x 64 + (14 x 14 x 32)+ -> 28 x 28 x 32
+        # TODO: this one doesnt actually need a conv since it's 28 -> 28
+        self.hb4 = HeatmapBlock(32, 32)     # 56 x 56 x 32 + (28 x 28 x 32)+ -> 56 x 56 x 32
 
         # Heatmap output (each keypoint has its own heatmap, x, and y offset maps)
         # num_keypoints heatmaps
@@ -31,10 +31,10 @@ class BlazePose(nn.Module):
         self.outH = nn.Conv2d(in_channels=32, out_channels=num_keypoints * 3, kernel_size=3, padding='same')
 
 
-        self.pb1 = PoseBlock(32, 64)        # 64 x 64 x 32 -> 32 x 32 x 64
-        self.pb2 = PoseBlock(64, 128)       # 32 x 32 x 64 -> 16 x 16 x 128
-        self.pb3 = PoseBlock(128, 192)      # 16 x 16 x 128 -> 8 x 8 x 192
-        self.pb4 = PoseBlock(192, 192)      # 8 x 8 x 192 -> 4 x 4 x 192
+        self.pb1 = PoseBlock(32, 64)        # 56 x 56 x 28 -> 28 x 32 x 64
+        self.pb2 = PoseBlock(64, 128)       # 28 x 28 x 64 -> 14 x 14 x 128
+        self.pb3 = PoseBlock(128, 192)      # 14 x 14 x 128 -> 7 x 7 x 192
+        self.pb4 = PoseBlock(192, 192)      # 7 x 7 x 192 -> 4 x 4 x 192
         self.pb5 = PoseBlock(192, 192)      # 4 x 4 x 192 -> 2 x 2 x 192
 
         # Regression output
@@ -188,5 +188,5 @@ class HeatmapBlock(nn.Module):
 
 
 if __name__ == "__main__":
-    model = BlazePose(16)
-    profile = summary(model, input_size=(3, 256, 256))
+    model = BlazePose(21)
+    profile = summary(model, input_size=(3, 224, 224))

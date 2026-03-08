@@ -34,7 +34,9 @@ def log_results(file_path, metrics):
             file.write(f'{metrics[metric]},')
 
     file.write('\n')
-    file.flush() # Makes file update immediately
+    # Makes file update immediately
+    file.flush()
+    os.fsync(file.fileno())
 
 
 def validate(model, val_loader, loss_func, image_size):
@@ -211,7 +213,7 @@ def train(
         }
 
         # Save best model best on pck@0.05
-        pck005 = metrics['average_val_loss']
+        pck005 = metrics['pck@0.05']
         if pck005 > best_pck005:
             torch.save(checkpoint, runs_dir + "/" + time + "/best.pt")
             best_pck005 = pck005

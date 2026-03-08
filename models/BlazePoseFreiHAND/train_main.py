@@ -95,7 +95,7 @@ if __name__ == "__main__":
         keypoints_json=val_kpts_json, 
         intrinsics_json=val_intrinsics_json,
         scale_json=train_scale_json,
-        transform=train_transform)
+        transform=transform)
 
     test_dataset = val_dataset
 
