@@ -1,4 +1,5 @@
 import torch
+from metrics.math import reproject_xyZ2XYZ
 
 
 def mpjpe_3D(preds_kp, labels_kp, K, root_depths, image_size):
@@ -35,27 +36,6 @@ def mpjpe_3D(preds_kp, labels_kp, K, root_depths, image_size):
     mpjpe = distances.mean() * 1000 # multiply by 1000 for millimeters
 
     return mpjpe
-
-
-def reproject_xyZ2XYZ(xyz, K):
-    # Decompose intrinsics
-    fx = K[:, 0, 0][:, None]
-    fy = K[:, 1, 1][:, None]
-    cx = K[:, 0, 2][:, None]
-    cy = K[:, 1, 2][:, None]
-
-    # Decompose xyZ
-    x = xyz[:, :, 0]
-    y = xyz[:, :, 1]
-    Z = xyz[:, :, 2]
-
-    # Reproject xyz to XYZ
-    X = (x - cx) * Z / fx
-    Y = (y - cy) * Z / fy
-
-    XYZ = torch.stack([X, Y, Z], dim=-1)
-
-    return XYZ
 
 
 if __name__ == "__main__":

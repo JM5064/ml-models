@@ -6,7 +6,7 @@ import time
 
 import torch
 from metrics.mpjpe import mpjpe_3D
-from metrics.pck import pck_2D
+from metrics.pck import pck_2D, pck_3D
 
 
 def to_device(obj):
@@ -47,7 +47,10 @@ def validate(model, val_loader, loss_func, image_size):
     total_regression_loss = 0.0
     total_heatmap_loss = 0.0
     total_offset_loss = 0.0
+
     mpjpe = 0.0
+    pck20 = 0.0
+    pck40 = 0.0
 
     with torch.no_grad():
         for inputs, keypoints, heatmaps, offset_masks, Ks, wrist_depths in tqdm(val_loader):
@@ -73,12 +76,20 @@ def validate(model, val_loader, loss_func, image_size):
 
             # Calculate mpjpe on batch
             batch_mpjpe = mpjpe_3D(regression_outputs, keypoints, Ks, wrist_depths, image_size)
-        
             # Multiply by batch size to get total pjpe for the batch
             mpjpe += batch_mpjpe.item() * keypoints.shape[0]
 
-    # Divide by # of images for mpjpe
+            # Calculate 3D pck on batch
+            batch_pck20 = pck_3D(regression_outputs, keypoints, 20, Ks, wrist_depths, image_size)
+            pck20 += batch_pck20.item() * keypoints.shape[0]
+            batch_pck40 = pck_3D(regression_outputs, keypoints, 40, Ks, wrist_depths, image_size)
+            pck40 += batch_pck40.item() * keypoints.shape[0]
+
+
+    # Divide by # of images
     mpjpe /= len(all_preds)
+    pck20 /= len(all_preds)
+    pck40 /= len(all_preds)
 
     average_val_loss = total_combined_loss / len(val_loader)
     average_val_regression_loss = total_regression_loss / len(val_loader)
@@ -103,13 +114,15 @@ def validate(model, val_loader, loss_func, image_size):
     correct005 = pck_2D(preds_kp[..., :2], labels_kp[..., :2], 0.05, 9, 12)
     correct02 = pck_2D(preds_kp[..., :2], labels_kp[..., :2], 0.2, 9, 12)
 
-    pck005 = correct005.mean().item()
-    pck02 = correct02.mean().item()
+    pck005 = correct005.item()
+    pck02 = correct02.item()
 
     metrics = {
         "mae": mae,
         "pck@0.05": pck005,
         "pck@0.2": pck02,
+        "pck@20mm": pck20,
+        "pck@40mm": pck40,
         "mpjpe": mpjpe,
         "average_val_loss": average_val_loss,
         "average_val_regression_loss": average_val_regression_loss,
@@ -195,7 +208,8 @@ def train(
              f' | Heatmap: {average_train_heatmap_loss} | Offset: {average_train_offset_loss}')
         print(f'Val Loss:   {metrics["average_val_loss"]} | Regression: {metrics["average_val_regression_loss"]}'
              f' | Heatmap: {metrics["average_val_heatmap_loss"]} | Offset: {metrics["average_val_offset_loss"]}')
-        print(f'MAE: {metrics["mae"]}\tPCK@0.05: {metrics["pck@0.05"]}\tPCK@0.2: {metrics["pck@0.2"]}')
+        print(f'PCK@0.05: {metrics["pck@0.05"]}\tPCK@0.2: {metrics["pck@0.2"]}')
+        print(f'PCK@20mm: {metrics["pck@20mm"]}\tPCK@40mm: {metrics["pck@40mm"]}')
         print(f'MPJPE: {metrics["mpjpe"]}')
 
         log_results(logfile_path, metrics)
@@ -224,7 +238,8 @@ def train(
     print("Testing Model")
     metrics = validate(model, test_loader, loss_func, image_size)
     print("Testing Results")
-    print(f'MAE: {metrics["mae"]}\tPCK@0.05: {metrics["pck@0.05"]}\tPCK@0.2: {metrics["pck@0.2"]}')
+    print(f'PCK@0.05: {metrics["pck@0.05"]}\tPCK@0.2: {metrics["pck@0.2"]}')
+    print(f'PCK@20mm: {metrics["pck@20mm"]}\tPCK@40mm: {metrics["pck@40mm"]}')
     print(f'MPJPE: {metrics["mpjpe"]}')
     print(f'Test Loss: {metrics["average_val_loss"]}')
 
