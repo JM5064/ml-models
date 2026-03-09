@@ -22,7 +22,7 @@ from datasets.MPII.random_affine import RandomAffine
 from datasets.MPII.random_horizontal_flip import RandomHorizontalFlip
 from datasets.MPII.random_occlusion import RandomOcclusion
 
-from .losses.combined_loss_gn import CombinedLoss
+from .GradNorm.combined_loss_gn import CombinedLoss
 
 
 if __name__ == "__main__":

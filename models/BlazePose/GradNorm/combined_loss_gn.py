@@ -3,10 +3,10 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from .regression_loss import RegressionLoss
-from .heatmap_loss import HeatmapLoss
-from .offset_loss import OffsetLoss
-from .gradnorm_loss import GradNormLoss
+from ..losses.regression_loss import RegressionLoss
+from ..losses.heatmap_loss import HeatmapLoss
+from ..losses.offset_loss import OffsetLoss
+from ..losses.gradnorm_loss import GradNormLoss
 
 
 class CombinedLoss(nn.Module):
