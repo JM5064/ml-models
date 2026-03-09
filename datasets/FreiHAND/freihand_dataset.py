@@ -67,22 +67,19 @@ class FreiHAND(Dataset):
             heatmaps: ndarray of the heatmaps
             offset_masks: ndarray of offset masks
         """
-
         image_name, keypoints, K, scale = self.data[index]
         image_path = os.path.join(self.images_dir, image_name)
 
         image = Image.open(image_path)
 
-        # Apply transformations
-        if self.transform:
-            image, keypoints = self.transform(image, keypoints)
-            keypoints = np.array(keypoints).squeeze()
-
-        # Convert image to numpy
-        np_image = np.array(image)
-
         # Project xyZ keypoints
         projected_keypoints = self.project_keypoints(keypoints, K)
+
+        # Apply transformations
+        if self.transform:
+            transformed = self.transform(image=np.array(image), keypoints=projected_keypoints[:, :2])
+            image = transformed['image']
+            projected_keypoints[:, :2] = np.array(transformed['keypoints'])
 
         # Normalize keypoints
         normalized_keypoints, wrist_depth = self.normalize_keypoints(projected_keypoints)
@@ -93,7 +90,7 @@ class FreiHAND(Dataset):
         # Create heatmaps / offset maps
         heatmaps, offset_masks = self.create_heatmap_and_offset_maps(projected_keypoints)
 
-        return np_image, tensor_keypoints, heatmaps, offset_masks, K, wrist_depth
+        return image, tensor_keypoints, heatmaps, offset_masks, K, wrist_depth
 
 
     def project_keypoints(self, keypoints, K):

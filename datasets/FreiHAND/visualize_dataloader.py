@@ -1,4 +1,6 @@
-"""Visualizes keypoints and heatmaps from dataloader"""
+"""
+Visualizes keypoints and heatmaps from dataloader
+"""
 
 import cv2
 import numpy as np
@@ -6,11 +8,12 @@ import json
 import os
 from torch.utils.data import DataLoader
 from torchvision.transforms import v2
-from datasets.MPII.random_affine import RandomAffine
+import albumentations as A
 
 
 def visualize(dataset):
     for image, keypoints, heatmaps, _, _, _ in dataset:
+        image = np.array(image)
         image = image.transpose(1, 2, 0) # transpose from 3 x 224 x 224 -> 224 x 224 x 3
         image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
@@ -92,8 +95,7 @@ def add_heatmap_offsets(heatmaps):
 
 
 def main():
-    # from freihand_dataset import FreiHAND
-    from datasets.FreiHAND.freihand_dataset import FreiHAND
+    from freihand_dataset import FreiHAND
 
     images_dir = 'datasets/FreiHAND/FreiHAND/FreiHAND_pub_v2_eval/evaluation/rgb'
     keypoints_path = 'datasets/FreiHAND/FreiHAND/FreiHAND_pub_v2_eval/evaluation_xyz.json'
@@ -101,25 +103,25 @@ def main():
     intrinsics_path = 'datasets/FreiHAND/FreiHAND/FreiHAND_pub_v2_eval/evaluation_K.json'
     vertices_path = 'datasets/FreiHAND/FreiHAND/FreiHAND_pub_v2_eval/evaluation_verts.json'
 
-    transform = v2.Compose([
-        # RandomHorizontalFlip(0.5, seed=5064),
-        RandomAffine(degrees=25, translate=None, scale=None, shear=None, seed=5064),
-        # v2.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.05),
-        # RandomOcclusion(0.1, 0.3, 0.5, seed=5064),
-        v2.ToTensor(),
-        v2.Normalize(mean=[0.472, 0.450, 0.413],
+    train_transform = A.Compose([
+        A.Rotate(limit=[-45, 45]),
+        A.ColorJitter(brightness=[0.8, 1.2], contrast=[0.8, 1.2], saturation=[0.8, 1.2], hue=[-0.05, 0.05]),
+        A.Normalize(mean=[0.472, 0.450, 0.413],
                             std=[0.277, 0.272, 0.273]),
-    ])
+        A.ToTensorV2(),
+    ], keypoint_params=A.KeypointParams(format='xy', remove_invisible=False))
+
 
     dataset = FreiHAND(
         images_dir=images_dir, 
         keypoints_json=keypoints_path, 
         intrinsics_json=intrinsics_path,
         scale_json=scale_path,
-        transform=transform)
+        transform=train_transform)
 
     visualize(dataset)
 
 
 if __name__ == "__main__":
     main()
+    

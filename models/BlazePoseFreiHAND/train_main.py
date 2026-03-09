@@ -14,14 +14,12 @@ from torch.utils.data import DataLoader
 import torchvision
 from torchvision import datasets
 from torchvision.transforms import v2
+import albumentations as A
 
 from .blazepose import BlazePose
 from .train import train, to_device
 from models.utils import load_checkpoint
 from datasets.FreiHAND.freihand_dataset import FreiHAND
-# from datasets.MPII.random_affine import RandomAffine
-# from datasets.MPII.random_horizontal_flip import RandomHorizontalFlip
-# from datasets.MPII.random_occlusion import RandomOcclusion
 
 from .losses.combined_loss import CombinedLoss
 
@@ -31,21 +29,19 @@ if __name__ == "__main__":
     torch.manual_seed(5064)
     np.random.seed(5064)
 
-    train_transform = v2.Compose([
-        # RandomHorizontalFlip(0.5, seed=5064),
-        # RandomAffine(degrees=25, translate=None, scale=(0.75, 1.25), shear=0.1, seed=5064),
-        v2.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.05),
-        # RandomOcclusion(0.1, 0.3, 0.5, seed=5064),
-        v2.ToTensor(),
-        v2.Normalize(mean=[0.472, 0.450, 0.413],
+    train_transform = A.Compose([
+        A.Rotate(limit=[-45, 45]),
+        A.ColorJitter(brightness=[0.8, 1.2], contrast=[0.8, 1.2], saturation=[0.8, 1.2], hue=[-0.05, 0.05]),
+        A.Normalize(mean=[0.472, 0.450, 0.413],
                             std=[0.277, 0.272, 0.273]),
-    ])
+        A.ToTensorV2(),
+    ], keypoint_params=A.KeypointParams(format='xy', remove_invisible=False))
 
-    transform = v2.Compose([
-        v2.ToTensor(),
-        v2.Normalize(mean=[0.472, 0.450, 0.413],
+    transform = A.Compose([
+        A.Normalize(mean=[0.472, 0.450, 0.413],
                             std=[0.277, 0.272, 0.273]),
-    ])
+        A.ToTensorV2(),
+    ], keypoint_params=A.KeypointParams(format='xy', remove_invisible=False))
 
     # Full dataset
     # train_images_dir = 'datasets/FreiHAND/FreiHAND/FreiHAND_pub_v2/training/rgb'
@@ -89,14 +85,16 @@ if __name__ == "__main__":
         keypoints_json=train_kpts_json, 
         intrinsics_json=train_intrinsics_json,
         scale_json=train_scale_json,
-        transform=train_transform)
+        transform=train_transform,
+    )
     
     val_dataset = FreiHAND(
         images_dir=val_images_dir, 
         keypoints_json=val_kpts_json, 
         intrinsics_json=val_intrinsics_json,
         scale_json=train_scale_json,
-        transform=transform)
+        transform=transform
+    )
 
     test_dataset = val_dataset
 
