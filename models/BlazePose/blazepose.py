@@ -167,22 +167,30 @@ class HeatmapBlock(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
 
+        self.conv1 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=3, padding='same')
+        self.bn1 = nn.BatchNorm2d(out_channels)
+
         self.upsample = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
-        self.conv = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=3, padding='same')
-        self.bn = nn.BatchNorm2d(out_channels)
+
+        self.conv2 = nn.Conv2d(in_channels=out_channels, out_channels=out_channels, kernel_size=3, padding='same')
+        self.bn2 = nn.BatchNorm2d(out_channels)
 
 
     def forward(self, midpath_x, prev_x):
         x = midpath_x
 
-        x = self.conv(x)
-        x = self.bn(x)
+        x = self.conv1(x)
+        x = self.bn1(x)
         x = F.relu6(x)
 
         if prev_x is not None:
             prev_x = self.upsample(prev_x)
 
             x = x + prev_x
+
+        x = self.conv2(x)
+        x = self.bn2(x)
+        x = F.relu6(x)
 
         return x
 

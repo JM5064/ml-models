@@ -28,15 +28,18 @@ class HeatmapLoss(nn.Module):
     
 
     def get_heatmap_loss(self, heatmap_preds, heatmap_labels, visibility):
+        # Weight heatmap centers more
+        weight = 1 + heatmap_labels * 10
+
         # Calculate squared errors between each pixel
-        squared_errors = (heatmap_preds - heatmap_labels) ** 2
+        squared_errors = weight * (heatmap_preds - heatmap_labels) ** 2
 
         # Mask out the non visible heatmaps
         mask = (visibility != -1).float()
 
         # Expand mask to same shape as heatmap
         mask = mask[:, :, None, None]
-        mask = mask.expand_as(squared_errors)
+        # mask = mask.expand_as(squared_errors)
 
         masked_squared_errors = squared_errors * mask
 
