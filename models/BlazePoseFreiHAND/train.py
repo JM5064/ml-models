@@ -80,11 +80,8 @@ def validate(model, val_loader, loss_func, image_size):
 
     # Calculate pck metrics
     # For FreiHAND: p1 = 9 (middle finger bottom), p2 = 12 (middle finger top) (not conventional)
-    correct005 = pck_2D(preds_kp[..., :2], labels_kp[..., :2], 0.05, 9, 12)
-    correct02 = pck_2D(preds_kp[..., :2], labels_kp[..., :2], 0.2, 9, 12)
-
-    pck005 = correct005.item()
-    pck02 = correct02.item()
+    pck005 = pck_2D(preds_kp[..., :2], labels_kp[..., :2], 0.05, 9, 12).item()
+    pck02 = pck_2D(preds_kp[..., :2], labels_kp[..., :2], 0.2, 9, 12).item()
 
     metrics = {
         "mae": mae,
