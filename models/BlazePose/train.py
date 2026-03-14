@@ -126,6 +126,8 @@ def train(
             loss, regression_loss, heatmap_loss, offset_loss = loss_func(
                 regression_outputs, keypoints, heatmap_outputs, heatmaps, offset_masks
             )
+            regression_w, heatmap_w, offset_w = loss_scheduling(i)
+            loss = regression_w * regression_loss + heatmap_w * heatmap_loss + offset_w * offset_loss
             loss.backward()
             optimizer.step()
 
@@ -189,3 +191,10 @@ def train(
     test_logfile_path = runs_dir + "/" + time + "/test_metrics.csv"
     log_results(test_logfile_path, metrics)
 
+
+def loss_scheduling(epoch):
+    regression_weight = 20 / (1 + np.exp(-0.06 * (epoch - 50)))
+    heatmap_weight = 3 / (1 + np.exp(0.045 * epoch))
+    offset_weight = 2 / (1 + np.exp(0.02 * epoch))
+
+    return regression_weight, heatmap_weight, offset_weight
