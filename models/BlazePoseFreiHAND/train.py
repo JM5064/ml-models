@@ -113,10 +113,12 @@ def train(
         image_size=224,
         runs_dir="models/BlazePoseFreiHAND/runs",
     ):
-    # create log file
-    time = str(datetime.now())
-    os.mkdir(runs_dir + "/" + time)
-    logfile_path = runs_dir + "/" + time + "/metrics.csv"
+    log_directory = runs_dir
+    # create log file for a new training session
+    if start_epoch == 0:
+        time = str(datetime.now())
+        os.mkdir(runs_dir + "/" + time)
+        log_directory = runs_dir + "/" + time
     best_pck005 = 0
 
     # training loop
@@ -178,7 +180,7 @@ def train(
         print(f'PCK@20mm: {metrics["pck@20mm"]}\tPCK@40mm: {metrics["pck@40mm"]}')
         print(f'MPJPE: {metrics["mpjpe"]}')
 
-        log_results(logfile_path, metrics)
+        log_results(log_directory + "/metrics.csv", metrics)
 
         # Step scheduler
         if scheduler:
@@ -195,10 +197,16 @@ def train(
         # Save best model best on pck@0.05
         pck005 = metrics['pck@0.05']
         if pck005 > best_pck005:
-            torch.save(checkpoint, runs_dir + "/" + time + "/best.pt")
+            torch.save(checkpoint, log_directory + "/best.pt")
             best_pck005 = pck005
 
-        torch.save(checkpoint, runs_dir + "/" + time + "/last.pt")
+        # Save last model
+        torch.save(checkpoint, log_directory + "/last.pt")
+
+        # Save a model every 20 epochs
+        if (i+i) % 20 == 0:
+            torch.save(checkpoint, f'{log_directory}/epoch{i+1}.pt"')
+
 
     # test model and print/log testing metrics
     print("Testing Model")
@@ -209,6 +217,6 @@ def train(
     print(f'MPJPE: {metrics["mpjpe"]}')
     print(f'Test Loss: {metrics["average_val_loss"]}')
 
-    test_logfile_path = runs_dir + "/" + time + "/test_metrics.csv"
+    test_logfile_path = log_directory + "/test_metrics.csv"
     log_results(test_logfile_path, metrics)
 
