@@ -183,8 +183,8 @@ def train(
         torch.save(checkpoint, log_directory + "/last.pt")
 
         # Save a model every 20 epochs
-        if (i+i) % 20 == 0:
-            torch.save(checkpoint, f'{log_directory}/epoch{i+1}.pt"')
+        if (i+1) % 20 == 0:
+            torch.save(checkpoint, f'{log_directory}/epoch{i+1}.pt')
 
 
     # test model and print/log testing metrics
