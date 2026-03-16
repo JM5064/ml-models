@@ -15,12 +15,12 @@ Images of sufficiently separated people were used for single person pose estimat
 ## Results
 |          | PCKh@0.5 | PCK@0.2 | PCK@0.05 |
 | -------- | -------- | ------- | -------- |
-| Val      | -        | 57.8    | 10.2     |
-| Test     | 73.1     | 59.5    | 10.7     |
+| Val      | 75.4     | 66.9    | 19.1     |
+| Test     | 75.6     | 67.7    | 19.9     |
 
 PCK@0.2 counts a prediction as correct if the Euclidean error is smaller than 20% of the person's torso size. 
 
 PCKh@0.5 counts a prediction as correct if the Euclidean error is smaller than 50% of the person's head size. 
 
-The heatmap branch is still not good 😭
+Why is the regression output so much worse than heatmap 😭
 
