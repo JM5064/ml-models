@@ -13,6 +13,7 @@ from torchvision.transforms import v2
 from models.BlazePose.blazepose import BlazePose
 from datasets.MPII.mpii_dataset import MPIIDataset
 from datasets.FreiHAND.visualize_dataloader import add_keypoints, add_heatmap_offsets
+from models.BlazePose.heatmap_inference import get_heatmap_keypoints
 
 
 keypoint_map = {
@@ -65,6 +66,7 @@ def inference(model, dataset):
 
             keypoint_predictions = np.array(keypoint_predictions.squeeze())
             heatmap_offset_predictions = np.array(heatmap_offset_predictions.squeeze())
+            heatmap_keypoints = get_heatmap_keypoints(np.array([heatmap_offset_predictions])).squeeze()
 
         # Convert PIL image to numpy
         image = np.array(image)
@@ -76,11 +78,13 @@ def inference(model, dataset):
 
         # Create keypoint image
         keypoints_image = add_keypoints(image, keypoint_predictions, keypoint_map)
+        keypoints_image_heatmap = add_keypoints(image, heatmap_keypoints, keypoint_map)
 
         # Create heatmap and offset images
         heatmap_image, x_offset_image, y_offset_image = add_heatmap_offsets(heatmap_offset_predictions)
 
         cv2.imshow("Keypoints", keypoints_image)
+        cv2.imshow("Keypoints Heatmap Inference", keypoints_image_heatmap)
         cv2.imshow("Heatmaps", heatmap_image)
         cv2.imshow("x offsets", x_offset_image)
         cv2.imshow("y offsets", y_offset_image)
@@ -92,7 +96,7 @@ def inference(model, dataset):
 
 
 if __name__ == "__main__":
-    model_path = "models/BlazePose/runs/2026-03-08 17:39:18.053314/best.pt"
+    model_path = "models/BlazePose/runs/26.3.15-heatmapconcat/last.pt"
     device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 
     model = load_model(model_path, device)
