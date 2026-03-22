@@ -72,8 +72,15 @@ class FreiHAND(Dataset):
 
         image = Image.open(image_path)
 
-        # Project xyZ keypoints
-        projected_keypoints = self.project_keypoints(keypoints, K)
+        # Scale normalize 3D keypoints
+        keypoints_scaled = (1 / scale) * keypoints
+
+        # Project keypoints
+        projected_keypoints = self.project_keypoints(keypoints_scaled, K)
+
+        # Normalize Z wrt root
+        wrist_depth = projected_keypoints[0][2]
+        projected_keypoints[:, 2] -= wrist_depth
 
         # Apply transformations
         if self.transform:
@@ -81,8 +88,8 @@ class FreiHAND(Dataset):
             image = transformed['image']
             projected_keypoints[:, :2] = np.array(transformed['keypoints'])
 
-        # Normalize keypoints
-        normalized_keypoints, wrist_depth = self.normalize_keypoints(projected_keypoints)
+        # Normalize xy between 0-1
+        normalized_keypoints = self.normalize_keypoints(projected_keypoints)
         
         # Convert keypoints to tensor
         tensor_keypoints = torch.tensor(normalized_keypoints, dtype=torch.float32)
@@ -108,26 +115,6 @@ class FreiHAND(Dataset):
         keypoints_xyZ[:, 2] = keypoints[:, 2]
 
         return keypoints_xyZ
-    
-
-    def normalize_depths(self, keypoints):
-        """Normalize z coordinate with respect to the wrist
-        args:
-            keypoints: np.array([[X1, Y1, Z1], ...])
-
-        returns:
-            normalized_depths: np.array([z1, z2, ...])
-            wrist_depth: normalization scalar
-        """
-
-        depths = keypoints[:, 2]
-
-        # Normalize wrt wrist (keypoint 0)
-        wrist_depth = depths[0]
-
-        normalized_depths = depths - wrist_depth
-
-        return normalized_depths, wrist_depth
 
         
     def normalize_keypoints(self, keypoints):
@@ -145,10 +132,7 @@ class FreiHAND(Dataset):
         # Normalize xy
         normalized_keypoints[:, :2] /= self.image_size
 
-        # Normalize z
-        normalized_keypoints[:, 2], wrist_depth = self.normalize_depths(normalized_keypoints)
-
-        return normalized_keypoints, wrist_depth
+        return normalized_keypoints
     
 
     def create_heatmap_and_offset_maps(self, keypoints, sigma=1.0, radius_threshold=3):
