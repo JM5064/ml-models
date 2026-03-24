@@ -6,3 +6,4 @@ A repository for machine learning papers I have tried to implement. Models can b
 
 [BlazePose: On-device Real-time Body Pose tracking](models/BlazePose/)
 
+[Simple Baselines for Human Pose Estimation and Tracking](models/SimpleBaselines/)
