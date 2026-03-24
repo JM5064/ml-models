@@ -7,7 +7,7 @@ import time
 import torch
 from metrics.pck import pck_2D_visibile
 from models.utils import to_device, log_results
-from datasets.MPII.heatmap_inference import get_heatmap_keypoints
+from datasets.MPII.heatmap_inference import heatmap_inference
 
 
 def validate(model, val_loader, loss_func):
@@ -28,7 +28,7 @@ def validate(model, val_loader, loss_func):
             loss = loss_func(heatmap_outputs, heatmaps, keypoints)
             total_loss += loss.item()
 
-            keypoint_predictions = get_heatmap_keypoints(heatmap_outputs)
+            keypoint_predictions = heatmap_inference(heatmap_outputs)
 
             all_preds.extend(keypoint_predictions.cpu().numpy().squeeze())
             all_labels.extend(keypoints.cpu().numpy())
@@ -42,10 +42,10 @@ def validate(model, val_loader, loss_func):
     preds_concat = torch.cat([torch.tensor(pred) for pred in all_preds_flattened])
     labels_concat = torch.cat([torch.tensor(label) for label in all_labels_flattened])
 
-    mae = torch.mean(torch.abs(preds_concat - labels_concat)).item()
+    # mae = torch.mean(torch.abs(preds_concat - labels_concat)).item()
 
-    # Reshape to [batch, num_keypoints, 3], and grab just the x, y
-    preds_kp = preds_concat.view(-1, 16, 3)[:, :, :2]
+    # Reshape to [batch, num_keypoints, 2]
+    preds_kp = preds_concat.view(-1, 16, 2)
     labels_kp = labels_concat.view(-1, 16, 3)[:, :, :2]
 
     # Calculate pck metrics
@@ -57,7 +57,7 @@ def validate(model, val_loader, loss_func):
     pckh05 = pck_2D_visibile(preds_kp, labels_kp, 0.5, 8, 9).item()
 
     metrics = {
-        "mae": mae,
+        # "mae": mae,
         "pck@0.05": pck005,
         "pck@0.2": pck02,
         "pckh@0.5": pckh05,
@@ -122,7 +122,7 @@ def train(
         print(f'Train Loss: {average_train_loss}')
         print(f'Val Loss:   {metrics["average_val_loss"]}')
         print(f'PCK@0.05: {metrics["pck@0.05"]}\tPCK@0.2: {metrics["pck@0.2"]}\tPCKh@0.5: {metrics["pckh@0.5"]}')
-        print(f'MAE: {metrics["mae"]}')
+        # print(f'MAE: {metrics["mae"]}')
 
         log_results(log_directory + "/metrics.csv", metrics)
 
@@ -159,7 +159,7 @@ def train(
     print(f'Test Loss:   {metrics["average_val_loss"]} | Regression: {metrics["average_val_regression_loss"]}'
             f' | Heatmap: {metrics["average_val_heatmap_loss"]} | Offset: {metrics["average_val_offset_loss"]}')
     print(f'PCK@0.05: {metrics["pck@0.05"]}\tPCK@0.2: {metrics["pck@0.2"]}\tPCKh@0.5: {metrics["pckh@0.5"]}')
-    print(f'MAE: {metrics["mae"]}')
+    # print(f'MAE: {metrics["mae"]}')
 
     test_logfile_path = log_directory + "/test_metrics.csv"
     log_results(test_logfile_path, metrics)

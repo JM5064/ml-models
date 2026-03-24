@@ -7,7 +7,7 @@ def get_heatmap_keypoints(heatmap_preds):
     heatmap_preds: (batch, num_keypoints*3, heatmap_size, heatmap_size)
 
     returns:
-        keypoints: (batch, 16, 2) -> (x, y)
+        keypoints: (batch, num_keypoints, 2)
     """
 
     batch_size, N, heatmap_size, _ = heatmap_preds.shape
@@ -19,7 +19,8 @@ def get_heatmap_keypoints(heatmap_preds):
     y_offsets = heatmap_preds[:, 2*num_keypoints:3*num_keypoints]
 
     # Flatten heatmaps and get argmax location
-    argmaxes = np.argmax(heatmaps.reshape(batch_size, num_keypoints, -1), axis=-1)
+    flat_heatmaps = heatmaps.view(batch_size, num_keypoints, -1)
+    argmaxes = torch.argmax(flat_heatmaps, dim=-1)  # [batch, num_keypoints]
 
     # Get xs and ys of argmax locations
     x = argmaxes % heatmap_size
@@ -38,6 +39,31 @@ def get_heatmap_keypoints(heatmap_preds):
 
     # Combine, convert to tensor, and normalize
     keypoints = np.stack([keypoint_x, keypoint_y], axis=-1)
+    keypoints = torch.tensor(keypoints) / heatmap_size
+
+    return keypoints
+
+
+def heatmap_inference(heatmap_preds):
+    """
+    heatmap_preds: (batch, num_keypoints, heatmap_size, heatmap_size)
+
+    returns:
+        keypoints: (batch, num_keypoints, 2)
+    """
+
+    batch_size, num_keypoints, heatmap_size, _ = heatmap_preds.shape
+
+    # Flatten heatmaps and get argmax location
+    flat_heatmaps = heatmap_preds.view(batch_size, num_keypoints, -1)
+    argmaxes = torch.argmax(flat_heatmaps, dim=-1)  # [batch, num_keypoints]
+
+    # Get xs and ys of argmax locations
+    x = argmaxes % heatmap_size
+    y = argmaxes // heatmap_size
+
+    # Combine, convert to tensor, and normalize
+    keypoints = torch.stack([x, y], dim=-1)
     keypoints = torch.tensor(keypoints) / heatmap_size
 
     return keypoints
