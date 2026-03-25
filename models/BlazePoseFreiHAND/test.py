@@ -4,7 +4,7 @@ from torchvision.transforms import v2
 
 from models.BlazePoseFreiHAND.blazepose import BlazePose
 from models.BlazePoseFreiHAND.train import validate
-from models.utils import to_device
+from models.utils import DEVICE
 from datasets.FreiHAND.freihand_dataset import FreiHAND
 from models.BlazePoseFreiHAND.losses.combined_loss import CombinedLoss
 
@@ -25,7 +25,7 @@ def load_model(model_path, num_keypoints=21):
     checkpoint = torch.load(model_path, map_location=torch.device('cpu'), weights_only=True)
     model.load_state_dict(checkpoint['state_dict'])
 
-    model = to_device(model)
+    model = model.to(DEVICE)
 
     model.eval()
 

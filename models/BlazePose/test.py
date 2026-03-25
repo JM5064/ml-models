@@ -1,10 +1,14 @@
+"""Usage:
+python -m models.BlazePose.test
+"""
+
 import torch
 from torch.utils.data import DataLoader
 from torchvision.transforms import v2
 
 from models.BlazePose.blazepose import BlazePose
 from models.BlazePose.train import validate
-from models.utils import to_device
+from models.utils import DEVICE
 from datasets.MPII.mpii_dataset import MPIIDataset
 from models.BlazePose.losses.combined_loss import CombinedLoss
 
@@ -13,8 +17,10 @@ def test(model, test_loader, loss_func):
     print("Testing Model")
     metrics = validate(model, test_loader, loss_func)
     print("Testing Results")
-    print(f'PCK@0.05: {metrics["pck@0.05"]}\tPCK@0.2: {metrics["pck@0.2"]}')
-    print(f'Test Loss: {metrics["average_val_loss"]}')
+    print(f'Test Loss:   {metrics["average_val_loss"]} | Regression: {metrics["average_val_regression_loss"]}'
+            f' | Heatmap: {metrics["average_val_heatmap_loss"]} | Offset: {metrics["average_val_offset_loss"]}')
+    print(f'PCK@0.05: {metrics["pck@0.05"]}\tPCK@0.2: {metrics["pck@0.2"]}\tPCKh@0.5: {metrics["pckh@0.5"]}')
+    print(f'MAE: {metrics["mae"]}')
 
 
 def load_model(model_path, num_keypoints=16):
@@ -24,7 +30,7 @@ def load_model(model_path, num_keypoints=16):
     checkpoint = torch.load(model_path, map_location=torch.device('cpu'), weights_only=True)
     model.load_state_dict(checkpoint['state_dict'])
 
-    model = to_device(model)
+    model = model.to(DEVICE)
 
     model.eval()
 
@@ -32,7 +38,7 @@ def load_model(model_path, num_keypoints=16):
 
 
 if __name__ == "__main__":
-    model_path = "models/BlazePose/runs/100epochs_heatmapfix/best.pt"
+    model_path = "models/BlazePose/runs/26.1.26-100epochs/last.pt"
     model = load_model(model_path)
 
     images_dir = 'datasets/MPII/mpii/images'

@@ -15,9 +15,9 @@ import torchvision
 from torchvision import datasets
 from torchvision.transforms import v2
 
-from .blazepose import BlazePose
-from .train import train, to_device
-from models.utils import load_checkpoint
+from models.BlazePose.blazepose import BlazePose
+from models.BlazePose.blazepose import train
+from models.utils import load_checkpoint, DEVICE
 from datasets.MPII.mpii_dataset import MPIIDataset
 from datasets.MPII.random_affine import RandomAffine
 from datasets.MPII.random_horizontal_flip import RandomHorizontalFlip
@@ -78,7 +78,7 @@ if __name__ == "__main__":
     # for param in model.bb2.parameters():
     #     param.requires_grad = False
 
-    model = to_device(model)
+    model = model.to(DEVICE)
 
     adamW_params = {
         "lr": 1e-3,
@@ -102,16 +102,17 @@ if __name__ == "__main__":
     total_epochs = 100
     scheduler = convnext_scheduler(optimizer, warmup_epochs, total_epochs)
 
-    model, optimizer, scheduler, epoch = load_checkpoint("models/BlazePose/runs/54_epochs/last.pt", model, optimizer, scheduler)
+    # model, optimizer, scheduler, epoch = load_checkpoint("models/BlazePose/runs/heatmapconcat/last.pt", model, optimizer, scheduler)
 
     train(
         model, 
         total_epochs, 
-        start_epoch=epoch,
+        start_epoch=0,
         train_loader=train_loader, 
         val_loader=val_loader, 
         test_loader=test_loader, 
         loss_func=CombinedLoss(), 
         optimizer=optimizer, 
-        scheduler=scheduler
+        scheduler=scheduler,
+        runs_dir='models/BlazePose/runs'
     )

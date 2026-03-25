@@ -7,7 +7,7 @@ import time
 import torch
 from metrics.mpjpe import mpjpe_3D
 from metrics.pck import pck_2D, pck_3D
-from models.utils import to_device, log_results
+from models.utils import DEVICE, log_results
 
 
 def validate(model, val_loader, loss_func, image_size):
@@ -25,12 +25,12 @@ def validate(model, val_loader, loss_func, image_size):
 
     with torch.no_grad():
         for inputs, keypoints, heatmaps, offset_masks, Ks, wrist_depths in tqdm(val_loader):
-            inputs = to_device(inputs)
-            keypoints = to_device(keypoints)
-            heatmaps = to_device(heatmaps)
-            offset_masks = to_device(offset_masks)
-            Ks = to_device(Ks)
-            wrist_depths = to_device(wrist_depths)
+            inputs = inputs.to(DEVICE)
+            keypoints = keypoints.to(DEVICE)
+            heatmaps = heatmaps.to(DEVICE)
+            offset_masks = offset_masks.to(DEVICE)
+            Ks = Ks.to(DEVICE)
+            wrist_depths = wrist_depths.to(DEVICE)
 
             # Get predictions for regression and heatmap paths
             regression_outputs, heatmap_outputs = model(inputs)
@@ -137,10 +137,10 @@ def train(
 
         model.train()
         for inputs, keypoints, heatmaps, offset_masks, Ks, wrist_depths in tqdm(train_loader):
-            inputs = to_device(inputs)
-            keypoints = to_device(keypoints)
-            heatmaps = to_device(heatmaps)
-            offset_masks = to_device(offset_masks)
+            inputs = inputs.to(DEVICE)
+            keypoints = keypoints.to(DEVICE)
+            heatmaps = heatmaps.to(DEVICE)
+            offset_masks = offset_masks.to(DEVICE)
 
             optimizer.zero_grad()
 

@@ -15,14 +15,15 @@ import torchvision
 from torchvision import datasets
 from torchvision.transforms import v2
 
-from .blazepose import BlazePose
-from .train_gn import train, to_device
+from models.BlazePose.blazepose import BlazePose
+from models.BlazePose.GradNorm.train_gn import train
+from models.utils import DEVICE
 from datasets.MPII.mpii_dataset import MPIIDataset
 from datasets.MPII.random_affine import RandomAffine
 from datasets.MPII.random_horizontal_flip import RandomHorizontalFlip
 from datasets.MPII.random_occlusion import RandomOcclusion
 
-from .GradNorm.combined_loss_gn import CombinedLoss
+from models.BlazePose.GradNorm.combined_loss_gn import CombinedLoss
 
 
 if __name__ == "__main__":
@@ -76,7 +77,7 @@ if __name__ == "__main__":
     # for param in model.bb2.parameters():
     #     param.requires_grad = False
 
-    model = to_device(model)
+    model = model.to(DEVICE)
 
     adamW_params = {
         "lr": 1e-3,

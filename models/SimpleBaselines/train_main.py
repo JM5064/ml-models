@@ -16,7 +16,7 @@ from torchvision import datasets
 from torchvision.transforms import v2
 
 from models.SimpleBaselines.model import SimpleBaselines
-from models.SimpleBaselines.train import train, to_device
+from models.SimpleBaselines.train import train, DEVICE
 from models.utils import load_checkpoint
 from datasets.MPII.mpii_dataset import MPIIDataset
 from datasets.MPII.random_affine import RandomAffine
@@ -57,7 +57,7 @@ if __name__ == "__main__":
     val_dataset = MPIIDataset(images_dir, val_json, transform=transform)
     test_dataset = MPIIDataset(images_dir, test_json, transform=transform)
 
-    batch_size = 64
+    batch_size = 32
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=1)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=1)
@@ -66,7 +66,7 @@ if __name__ == "__main__":
     num_keypoints = 16
 
     model = SimpleBaselines(num_keypoints=num_keypoints)
-    model = to_device(model)
+    model = model.to(DEVICE)
 
     adamW_params = {
         "lr": 1e-3,

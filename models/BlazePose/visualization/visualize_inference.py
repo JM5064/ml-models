@@ -13,7 +13,7 @@ from torchvision.transforms import v2
 from models.BlazePose.blazepose import BlazePose
 from datasets.MPII.mpii_dataset import MPIIDataset
 from datasets.FreiHAND.visualize_dataloader import add_keypoints, add_heatmap_offsets
-from models.BlazePose.heatmap_inference import get_heatmap_keypoints
+from datasets.MPII.heatmap_inference import get_heatmap_keypoints
 
 
 keypoint_map = {
@@ -96,7 +96,7 @@ def inference(model, dataset):
 
 
 if __name__ == "__main__":
-    model_path = "models/BlazePose/runs/26.3.15-heatmapconcat/last.pt"
+    model_path = "models/BlazePose/runs/26.3.15-heatmapconcat/best.pt"
     device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 
     model = load_model(model_path, device)
@@ -107,6 +107,6 @@ if __name__ == "__main__":
                             std=[0.277, 0.272, 0.273]),
     ])
 
-    test_dataset = mpii_dataset = MPIIDataset('datasets/MPII/mpii/images', 'datasets/MPII/mpii/test.json', transform=transform)
+    test_dataset = mpii_dataset = MPIIDataset('datasets/MPII/mpii/images', 'datasets/MPII/mpii/train.json', transform=transform)
     
     inference(model, test_dataset)

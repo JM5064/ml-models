@@ -6,7 +6,7 @@ import time
 
 import torch
 from metrics.pck import pck_2D_visibile
-from models.utils import to_device, log_results
+from models.utils import DEVICE, log_results
 
 
 def validate(model, val_loader, loss_func):
@@ -20,10 +20,10 @@ def validate(model, val_loader, loss_func):
 
     with torch.no_grad():
         for inputs, keypoints, heatmaps, offset_masks in tqdm(val_loader):
-            inputs = to_device(inputs)
-            keypoints = to_device(keypoints)
-            heatmaps = to_device(heatmaps)
-            offset_masks = to_device(offset_masks)
+            inputs = inputs.to(DEVICE)
+            keypoints = keypoints.to(DEVICE)
+            heatmaps = heatmaps.to(DEVICE)
+            offset_masks = offset_masks.to(DEVICE)
 
             # Get predictions for regression and heatmap paths
             regression_outputs, heatmap_outputs = model(inputs)
@@ -115,10 +115,10 @@ def train(
 
         model.train()
         for inputs, keypoints, heatmaps, offset_masks in tqdm(train_loader):
-            inputs = to_device(inputs)
-            keypoints = to_device(keypoints)
-            heatmaps = to_device(heatmaps)
-            offset_masks = to_device(offset_masks)
+            inputs = inputs.to(DEVICE)
+            keypoints = keypoints.to(DEVICE)
+            heatmaps = heatmaps.to(DEVICE)
+            offset_masks = offset_masks.to(DEVICE)
 
             optimizer.zero_grad()
 

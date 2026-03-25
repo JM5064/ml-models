@@ -19,15 +19,8 @@ import torchvision
 from torchvision import datasets
 from torchvision.transforms import v2
 
-from .blazepose_pretraining import BlazePose
-
-def to_device(obj):
-    if torch.cuda.is_available():
-        obj = obj.to("cuda")
-    elif torch.backends.mps.is_available():
-        obj = obj.to("mps")
-
-    return obj
+from models.BlazePose.pretraining.blazepose_pretraining import BlazePose
+from models.utils import DEVICE
 
 
 def log_results(file, metrics):
@@ -65,8 +58,8 @@ def validate(model, val_loader, loss_func):
 
     with torch.no_grad():
         for inputs, labels in tqdm(val_loader):
-            inputs = to_device(inputs)
-            labels = to_device(labels)
+            inputs = inputs.to(DEVICE)
+            labels = labels.to(DEVICE)
 
             outputs = model(inputs)
             loss = loss_func(outputs, labels)
@@ -131,8 +124,8 @@ def train(
                 for augmentation in augmentations:
                     inputs, labels = augmentation(inputs, labels)
 
-            inputs = to_device(inputs)
-            labels = to_device(labels)
+            inputs = inputs.to(DEVICE)
+            labels = labels.to(DEVICE)
 
             optimizer.zero_grad()
 
@@ -234,7 +227,7 @@ if __name__ == "__main__":
     num_classes = 257
 
     model = BlazePose(num_classes=num_classes)
-    model = to_device(model)
+    model = model.to(DEVICE)
 
     adamW_params = {
         "lr": 1e-3,
@@ -255,7 +248,7 @@ if __name__ == "__main__":
     total_epochs = 30
     scheduler = convnext_scheduler(optimizer, warmup_epochs, total_epochs)
 
-    class_weights = to_device(compute_class_weights(dataset_path + 'train'))
+    class_weights = compute_class_weights(dataset_path + 'train').to(DEVICE)
 
     cutmix = v2.CutMix(alpha=1.0, num_classes=num_classes)
     mixup = v2.MixUp(alpha=0.8, num_classes=num_classes)

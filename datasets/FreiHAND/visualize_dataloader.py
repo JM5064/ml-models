@@ -41,6 +41,7 @@ def visualize(dataset):
 
 
 def add_keypoints(image, keypoints, joint_names=None):
+    image = image.copy()
     h, w, _ = image.shape
         
     # Unnormalize keypoints
@@ -64,6 +65,7 @@ def add_heatmap_offsets(heatmaps):
     # Combine heatmaps
     combined_heatmap = np.zeros(heatmaps[0].shape)
     for i in range(num_keypoints):
+        # if i == 1:
         combined_heatmap += heatmaps[i]
 
     # Combine x offset maps
@@ -101,7 +103,6 @@ def main():
     keypoints_path = 'datasets/FreiHAND/FreiHAND/FreiHAND_pub_v2_eval/evaluation_xyz.json'
     scale_path = 'datasets/FreiHAND/FreiHAND/FreiHAND_pub_v2_eval/evaluation_scale.json'
     intrinsics_path = 'datasets/FreiHAND/FreiHAND/FreiHAND_pub_v2_eval/evaluation_K.json'
-    vertices_path = 'datasets/FreiHAND/FreiHAND/FreiHAND_pub_v2_eval/evaluation_verts.json'
 
     train_transform = A.Compose([
         A.Rotate(limit=[-45, 45]),

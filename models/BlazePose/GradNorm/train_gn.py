@@ -5,15 +5,8 @@ import numpy as np
 import time
 
 import torch
+from models.utils import DEVICE
 
-
-def to_device(obj):
-    if torch.cuda.is_available():
-        obj = obj.to("cuda")
-    elif torch.backends.mps.is_available():
-        obj = obj.to("mps")
-
-    return obj
 
 
 def log_results(file_path, metrics):
@@ -85,10 +78,10 @@ def validate(model, val_loader, loss_func):
 
     with torch.no_grad():
         for inputs, keypoints, heatmaps, offset_masks in tqdm(val_loader):
-            inputs = to_device(inputs)
-            keypoints = to_device(keypoints)
-            heatmaps = to_device(heatmaps)
-            offset_masks = to_device(offset_masks)
+            inputs = inputs.to(DEVICE)
+            keypoints = keypoints.to(DEVICE)
+            heatmaps = heatmaps.to(DEVICE)
+            offset_masks = offset_masks.to(DEVICE)
 
             # Get predictions for regression and heatmap paths
             regression_outputs, heatmap_outputs, last_shared_layer = model(inputs)
@@ -156,10 +149,10 @@ def train(
         model.train()
         running_loss = 0.0
         for inputs, keypoints, heatmaps, offset_masks in tqdm(train_loader):
-            inputs = to_device(inputs)
-            keypoints = to_device(keypoints)
-            heatmaps = to_device(heatmaps)
-            offset_masks = to_device(offset_masks)
+            inputs = inputs.to(DEVICE)
+            keypoints = keypoints.to(DEVICE)
+            heatmaps = heatmaps.to(DEVICE)
+            offset_masks = offset_masks.to(DEVICE)
 
             optimizer.zero_grad()
 

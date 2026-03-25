@@ -25,7 +25,7 @@ class HeatmapLoss(nn.Module):
 
     def get_heatmap_loss(self, heatmap_preds, heatmap_labels, visibility):
         # Weight heatmap centers more
-        weight = 1 + heatmap_labels * 10
+        weight = 1 + heatmap_labels * 5
 
         # Calculate squared errors between each pixel
         squared_errors = weight * (heatmap_preds - heatmap_labels) ** 2

@@ -16,8 +16,9 @@ from torchvision import datasets
 from torchvision.transforms import v2
 import albumentations as A
 
-from .blazepose import BlazePose
-from .train import train, to_device
+from models.BlazePoseFreiHAND.blazepose import BlazePose
+from models.BlazePoseFreiHAND.train import train
+from models.utils import DEVICE
 from models.utils import load_checkpoint
 from datasets.FreiHAND.freihand_dataset import FreiHAND
 
@@ -119,7 +120,7 @@ if __name__ == "__main__":
     # for param in model.bb2.parameters():
     #     param.requires_grad = False
 
-    model = to_device(model)
+    model = model.to(DEVICE)
 
     adamW_params = {
         "lr": 1e-3,

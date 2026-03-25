@@ -10,7 +10,7 @@ from torchvision.transforms import v2
 from tqdm import tqdm
 
 from models.SimpleBaselines.model import SimpleBaselines
-from models.utils import to_device
+from models.utils import DEVICE
 from datasets.MPII.mpii_dataset import MPIIDataset
 from models.SimpleBaselines.losses.heatmap_loss import HeatmapLoss
 
@@ -27,10 +27,10 @@ def validate(model, val_loader, loss_func):
     
     with torch.no_grad():
         for inputs, keypoints, heatmaps, offset_masks in tqdm(val_loader):
-            inputs = to_device(inputs)
-            keypoints = to_device(keypoints)
-            heatmaps = to_device(heatmaps)
-            offset_masks = to_device(offset_masks)
+            inputs = inputs.to(DEVICE)
+            keypoints = keypoints.to(DEVICE)
+            heatmaps = heatmaps.to(DEVICE)
+            offset_masks = offset_masks.to(DEVICE)
 
             # Get predictions for normal image, and flipped image
             heatmap_outputs = model(inputs)
@@ -92,7 +92,7 @@ def load_model(model_path, num_keypoints=16):
     checkpoint = torch.load(model_path, map_location=torch.device('cpu'), weights_only=True)
     model.load_state_dict(checkpoint['state_dict'])
 
-    model = to_device(model)
+    model = model.to(DEVICE)
 
     model.eval()
 

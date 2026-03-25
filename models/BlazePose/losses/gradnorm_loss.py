@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from models.utils import DEVICE
 
 
 class GradNormLoss(nn.Module):
@@ -10,17 +11,8 @@ class GradNormLoss(nn.Module):
         self.num_tasks = num_tasks
         self.alpha = alpha
 
-        self.loss_weights = self.to_device(nn.Parameter(torch.ones(num_tasks)))
+        self.loss_weights = nn.Parameter(torch.ones(num_tasks)).to(DEVICE)
         self.initial_losses = None
-
-
-    def to_device(self, obj):
-        if torch.cuda.is_available():
-            obj = obj.to("cuda")
-        elif torch.backends.mps.is_available():
-            obj = obj.to("mps")
-
-        return obj
 
 
     def forward(self, losses: torch.Tensor, layer_weights):
