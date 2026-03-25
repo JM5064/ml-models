@@ -19,8 +19,7 @@ def get_heatmap_keypoints(heatmap_preds):
     y_offsets = heatmap_preds[:, 2*num_keypoints:3*num_keypoints]
 
     # Flatten heatmaps and get argmax location
-    flat_heatmaps = heatmaps.view(batch_size, num_keypoints, -1)
-    argmaxes = torch.argmax(flat_heatmaps, dim=-1)  # [batch, num_keypoints]
+    argmaxes = np.argmax(heatmaps.reshape(batch_size, num_keypoints, -1), axis=-1)
 
     # Get xs and ys of argmax locations
     x = argmaxes % heatmap_size
@@ -64,6 +63,36 @@ def heatmap_inference(heatmap_preds):
 
     # Combine, convert to tensor, and normalize
     keypoints = torch.stack([x, y], dim=-1)
-    keypoints = torch.tensor(keypoints) / heatmap_size
+    keypoints = keypoints / (heatmap_size - 1)
 
     return keypoints
+
+
+def heatmap_inference_testing(heatmap_preds, heatmap_flipped_preds):
+    """
+    heatmap_preds: (batch, num_keypoints, heatmap_size, heatmap_size)
+    heatmap_flipped_preds: (batch, num_keypoints, heatmap_size, heatmap_size), predictions made on a flipped image
+
+    returns:
+        keypoints: (batch, num_keypoints, 2)
+    """
+    # Get keypoint locations from heatmaps
+    keypoints = heatmap_inference(heatmap_preds)
+    flipped_keypoints = heatmap_inference(heatmap_flipped_preds)
+
+    # Flip back the flipped heatmap
+    corrected_keypoints = flipped_keypoints.clone()
+    corrected_keypoints[:, :, 0] = 1.0 - corrected_keypoints[:, :, 0]
+
+    corrected_keypoints[:, [0, 5]] = corrected_keypoints[:, [5, 0]]
+    corrected_keypoints[:, [1, 4]] = corrected_keypoints[:, [4, 1]]
+    corrected_keypoints[:, [2, 3]] = corrected_keypoints[:, [3, 2]]
+    corrected_keypoints[:, [10, 15]] = corrected_keypoints[:, [15, 10]]
+    corrected_keypoints[:, [11, 14]] = corrected_keypoints[:, [14, 11]]
+    corrected_keypoints[:, [12, 13]] = corrected_keypoints[:, [13, 12]]
+
+    # Average the two sets of keypoints
+    averaged_keypoints = (keypoints + corrected_keypoints) / 2.0
+
+    return averaged_keypoints
+
