@@ -31,7 +31,7 @@ class BlazePose(nn.Module):
         self.outH = nn.Conv2d(in_channels=32, out_channels=num_keypoints * 3, kernel_size=3, padding='same')
 
 
-        self.pb1 = PoseBlock(32, 64)        # 64 x 64 x 32 -> 32 x 32 x 64
+        self.pb1 = PoseBlock(64, 64)        # 64 x 64 x 32 -> 32 x 32 x 64
         self.pb2 = PoseBlock(64, 128)       # 32 x 32 x 64 -> 16 x 16 x 128
         self.pb3 = PoseBlock(128, 192)      # 16 x 16 x 128 -> 8 x 8 x 192
         self.pb4 = PoseBlock(192, 192)      # 8 x 8 x 192 -> 4 x 4 x 192
@@ -71,7 +71,8 @@ class BlazePose(nn.Module):
 
         # Regression path
         # Detach to stop gradients from flowing back
-        x = self.pb1(y1.detach() + z4.detach())
+        # x = self.pb1(y1.detach() + z4.detach())
+        x = self.pb1(torch.cat([y1.detach(), z4.detach()], dim=1))
         x = self.pb2(x + y2.detach())
         x = self.pb3(x + y3.detach())
         x = self.pb4(x + y4.detach())
