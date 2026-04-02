@@ -16,8 +16,8 @@ from torchvision import datasets
 from torchvision.transforms import v2
 import albumentations as A
 
-from models.BlazePoseFreiHAND.blazepose import BlazePose
-from models.BlazePoseFreiHAND.train import train
+from models.BlazePose.BlazePoseFreiHAND.blazepose import BlazePose
+from models.BlazePose.BlazePoseFreiHAND.train import train
 from models.utils import DEVICE
 from models.utils import load_checkpoint
 from datasets.FreiHAND.freihand_dataset import FreiHAND

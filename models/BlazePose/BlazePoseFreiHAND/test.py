@@ -2,11 +2,11 @@ import torch
 from torch.utils.data import DataLoader
 from torchvision.transforms import v2
 
-from models.BlazePoseFreiHAND.blazepose import BlazePose
-from models.BlazePoseFreiHAND.train import validate
+from models.BlazePose.BlazePoseFreiHAND.blazepose import BlazePose
+from models.BlazePose.BlazePoseFreiHAND.train import validate
 from models.utils import DEVICE
 from datasets.FreiHAND.freihand_dataset import FreiHAND
-from models.BlazePoseFreiHAND.losses.combined_loss import CombinedLoss
+from models.BlazePose.BlazePoseFreiHAND.losses.combined_loss import CombinedLoss
 
 
 def test(model, test_loader, loss_func, image_size):
