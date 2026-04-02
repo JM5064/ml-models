@@ -6,6 +6,9 @@ datasets/FreiHAND/FreiHAND
 # Training runs
 **/runs**/
 
+# Visualization
+models/visualize_training.py
+
 **todo.txt**
 
 .DS_Store
