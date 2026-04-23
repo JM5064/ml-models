@@ -2,9 +2,12 @@
 datasets/Caltech-256/Caltech-256
 datasets/MPII/mpii
 datasets/FreiHAND/FreiHAND
+datasets/CIFAR10/CIFAR10
+
 
 # Training runs
 **/runs**/
+**/logs**/
 
 # Visualization
 models/visualize_training.py
