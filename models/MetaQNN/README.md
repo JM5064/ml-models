@@ -10,12 +10,12 @@ We use the following parameters for our state space:
 
 | Layer Type            | Layer Parameters | Parameter Values |
 | --------------------- | ---------------- | ---------------- |
-| **Convolution (C)** | $i$ ~ Layer depth <br> $f$ ~ Receptive field size <br> $l$ ~ Stride <br> $d$ ~ # receptive fields <br> $n$ ~ Representation size | < 8 <br> Square $\in$ {1, 3, 5} <br> Square. Always equal to 1 <br> $\in$ {64, 128, 256} <br> $\le$ 32 |
+| **Convolution (C)** | $i$ ~ Layer depth <br> $f$ ~ Receptive field size <br> $l$ ~ Stride <br> $d$ ~ # receptive fields <br> $n$ ~ Representation size | $\le$ 8 <br> Square $\in$ {1, 3, 5} <br> Square. Always equal to 1 <br> $\in$ {64, 128, 256} <br> $\le$ 32 |
 | **Pooling (P)** | $i$ ~ Layer depth <br> $(f, l)$ ~ (Receptive field size, Strides) <br> $n$ ~ Representation size | $\le$ 8 <br> Square $\in$ {(5, 3), (3, 2), (2, 2)} <br> $\le$ 32 |
-| **Fully Connected (FC)** | $i$ ~ Layer depth <br> $n$ ~ # consecutive FC layers <br> $d$ ~ # neurons | $\le$ 8 <br> < 3 <br> $\in$ {128, 256} |
+| **Fully Connected (FC)** | $i$ ~ Layer depth <br> $n$ ~ # consecutive FC layers <br> $d$ ~ # neurons | $\le$ 8 <br> $\lt$ 3 <br> $\in$ {128, 256} |
 | **Termination State** |  | Softmax |
 
-The neural architecture search was performed using the CIFAR-10 dataset. Each model was trained for 12 epochs, with a total of 285 models trained overall. 
+The neural architecture search was performed using the CIFAR-10 dataset. Due to compute constraints, each model was trained for 12 epochs, with a total of 285 models trained overall. 
 
 ---
 
