@@ -15,7 +15,7 @@ We use the following parameters for our state space:
 | **Fully Connected (FC)** | $i$ ~ Layer depth <br> $n$ ~ # consecutive FC layers <br> $d$ ~ # neurons | $\le$ 8 <br> $\lt$ 3 <br> $\in$ {128, 256} |
 | **Termination State** |  | Softmax |
 
-The neural architecture search was performed using the CIFAR-10 dataset. Due to compute constraints, each model was trained for 12 epochs, with a total of 285 models trained overall. 
+The neural architecture search was performed using the CIFAR-10 dataset. Due to compute constraints, each model was trained for 12 epochs, with a total of 300 models trained overall. 
 
 ---
 
