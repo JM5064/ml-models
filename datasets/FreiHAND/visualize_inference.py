@@ -10,7 +10,7 @@ import time
 import torch
 from torchvision.transforms import v2
 
-from models.BlazePoseFreiHAND.blazepose import BlazePose
+from models.BlazePose.BlazePoseFreiHAND.blazepose import BlazePose
 from datasets.FreiHAND.freihand_dataset import FreiHAND
 from datasets.FreiHAND.visualize_dataloader import add_keypoints, add_heatmap_offsets
 

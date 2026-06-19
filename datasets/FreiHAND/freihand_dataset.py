@@ -186,27 +186,65 @@ class FreiHAND(Dataset):
 
 if __name__ == "__main__":
     from torch.utils.data import DataLoader
-    from torchvision.transforms import v2
+    import albumentations as A
+    from metrics.math import reproject_xyZ2XYZ
 
     images_dir = 'datasets/FreiHAND/FreiHAND/FreiHAND_pub_v2_eval/evaluation/rgb'
     keypoints_json = 'datasets/FreiHAND/FreiHAND/FreiHAND_pub_v2_eval/evaluation_xyz.json'
     intrinsics_json = 'datasets/FreiHAND/FreiHAND/FreiHAND_pub_v2_eval/evaluation_K.json'
     scale_json = 'datasets/FreiHAND/FreiHAND/FreiHAND_pub_v2_eval/evaluation_scale.json'
 
-    transform = v2.Compose([
-        v2.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.05),
-        v2.ToTensor(),
-        v2.Normalize(mean=[0.472, 0.450, 0.413],
+    transform = A.Compose([
+        # A.Rotate(limit=[-45, 45]),
+        # A.ColorJitter(brightness=[0.8, 1.2], contrast=[0.8, 1.2], saturation=[0.8, 1.2], hue=[-0.05, 0.05]),
+        A.Normalize(mean=[0.472, 0.450, 0.413],
                             std=[0.277, 0.272, 0.273]),
-    ])
+        A.ToTensorV2(),
+    ], keypoint_params=A.KeypointParams(format='xy', remove_invisible=False))
 
     freihand = FreiHAND(images_dir, keypoints_json, intrinsics_json, scale_json, transform=transform)
 
     dl = DataLoader(freihand, batch_size=1, shuffle=False)
 
     for item in dl:
+        # Orig:
+        # [-0.06876980513334274, 0.0244811549782753, 0.9476402997970581], 
+        # [-0.05068895220756531, -0.008157476782798767, 0.9384765625]
+
         for i in range(len(item)):
-            print(item[i])
-            print("--------------------------------")
+            # print(item[i])
+            # print("--------------------------------")
+
+
+            if i == 1: # keypoints
+                keypoints = item[i]
+                # Unnormalize xy
+                keypoints[:, :, :2] *= 224
+
+                # Unnormalize depth
+                xn = keypoints[0][0][0]
+                yn = keypoints[0][0][1]
+                Zn = keypoints[0][0][2]
+                xm = keypoints[0][5][0]
+                ym = keypoints[0][5][1]
+                Zm = keypoints[0][5][2]
+
+                a = (xn - xm) ** 2 + (yn - ym) ** 2
+                b = Zn*(xn**2 + yn**2 - xn*xm - yn*ym) + Zm*(xm**2 + ym**2 - xn*xm - yn*ym)
+                c = (xn*Zn - xm*Zm) ** 2 + (yn*Zn - ym*Zm) ** 2 + (Zn - Zm) ** 2 - 1
+
+                root = 0.5 * (-b + (b**2 - 4*a*c) ** 0.5) / a
+                print(a, b, c)
+                print((b**2 - 4*a*c))
+                print("Calculated:", root, " Actual:", item[5])
+
+                # Reproject to XYZ
+                # keypoints = reproject_xyZ2XYZ(keypoints, item[4])
+
+                # Undo scaling
+                # keypoints *= 0.028820198014824962
+
+                # print(keypoints)
+                print("--------------------------------")
 
         break
