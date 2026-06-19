@@ -10,4 +10,4 @@ A repository for machine learning papers I have tried to implement. Models can b
 
 [Designing Neural Network Architectures Using Reinforcement Learning](models/MetaQNN/)
 
-[Improving Language Understanding by Generative Pre-Training](models/GPT1/)
+[Attention Is All You Need](models/GPT1/) / [Improving Language Understanding by Generative Pre-Training](models/GPT1/)
