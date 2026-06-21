@@ -9,3 +9,5 @@ A repository for machine learning papers I have tried to implement. Models can b
 [Simple Baselines for Human Pose Estimation and Tracking](models/SimpleBaselines/)
 
 [Designing Neural Network Architectures Using Reinforcement Learning](models/MetaQNN/)
+
+[Attention Is All You Need](models/GPT1/) / [Improving Language Understanding by Generative Pre-Training](models/GPT1/)
