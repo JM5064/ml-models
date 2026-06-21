@@ -1,6 +1,6 @@
 import torch.nn as nn
-from model.multiheaded_attention import MultiheadedAttention
-from model.mlp import MLP
+from ..multiheaded_attention import MultiheadedAttention
+from ..mlp import MLP
 
 
 class DecoderBlock(nn.Module):
