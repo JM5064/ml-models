@@ -24,7 +24,7 @@ We trained our model for 2 epochs and achieved a perplexity score of 55.9
 
 ### Example prompt
 
-Input: `Lionel Andrés Messi ( born 24 June 1987 ) is an Argentine professional footballer who plays as a forward for and captains both the Major League Soccer club Inter Miami and the Argentina national team . Widely known as `
+Input: `Lionel Andrés Messi ( born 24 June 1987 ) is an Argentine professional footballer who plays as a forward for and captains both the Major League Soccer club Inter Miami and the Argentina national team . Widely known as the `
 
 Output: `greatest footballer in football and international football , he was predominantly a free agent who had a strong reputation as a top scorer . He signed for promotion to the Premier League in 1987 , and spent two seasons with the club. He was re @-@ signed by League Two club Hammond , where he scored twice in eight appearances and scored twice in the club 's first ever league game . He signed a new one @-@ year contract with the club in July 2002 , which resulted in the club being relegated back to League Two on a month later . He signed for League Two side York City in December 2002 .`
 
